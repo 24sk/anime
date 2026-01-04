@@ -1,0 +1,52 @@
+{
+  "version": "0.2",
+  "language": "en,ja",
+  "words": [
+    "AniMe",
+    "anime",
+    "anon",
+    "anon_session",
+    "anon_session_id",
+    "Blob",
+    "cyberpunk",
+    "Gemini",
+    "Imagen",
+    "Nitro",
+    "NuxtUI",
+    "presign",
+    "PostgreSQL",
+    "Realtime",
+    "RLS",
+    "Supabase",
+    "Vercel",
+    "watercolor",
+    "zod"
+  ],
+  "ignoreWords": [
+    "composables",
+    "nuxt",
+    "pnpm",
+    "tsconfig"
+  ],
+  "flagWords": [],
+  "dictionaries": [
+    "typescript",
+    "node",
+    "npm",
+    "html",
+    "css",
+    "bash"
+  ],
+  "dictionaryDefinitions": [],
+  "ignorePaths": [
+    "node_modules/**",
+    ".nuxt/**",
+    ".output/**",
+    "dist/**",
+    "build/**",
+    "*.lock",
+    "pnpm-lock.yaml",
+    "package-lock.json",
+    "yarn.lock"
+  ]
+}

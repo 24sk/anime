@@ -1,0 +1,37 @@
+{
+  "name": "anime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@iconify-json/lucide": "^1.2.82",
+    "@iconify-json/simple-icons": "^1.2.63",
+    "@nuxt/image": "^2.0.0",
+    "@nuxt/ui": "^4.3.0",
+    "@nuxtjs/supabase": "^2.0.3",
+    "@vercel/blob": "^2.0.0",
+    "nuxt": "^4.2.2",
+    "uuid": "^13.0.0",
+    "zod": "^4.3.4"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.12.1",
+    "@nuxt/eslint-config": "^1.12.1",
+    "@types/node": "^25.0.3",
+    "@types/uuid": "^11.0.0",
+    "eslint": "^9.39.2",
+    "prettier": "^3.7.4",
+    "supabase": "^2.70.5",
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.2.1"
+  },
+  "packageManager": "pnpm@10.26.1"
+}
