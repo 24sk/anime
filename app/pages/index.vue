@@ -1,76 +1,85 @@
+<script setup lang="ts">
+const generationStore = useGenerationStore()
+const router = useRouter()
+const toast = useToast()
+
+const isGenerating = ref(false)
+
+const canGenerate = computed(() => {
+  return generationStore.imageFile !== null && generationStore.selectedStyle !== null
+})
+
+const handleGenerate = async () => {
+  if (!canGenerate.value || isGenerating.value) {
+    return
+  }
+
+  try {
+    isGenerating.value = true
+    generationStore.setStatus('generating')
+
+    // TODO: 画像をVercel Blobにアップロード
+    // TODO: APIリクエストを送信
+    // 現在はモックとして生成中画面へ遷移
+    await router.push('/generating')
+  } catch (error) {
+    console.error('生成エラー:', error)
+    toast.add({
+      title: 'エラーが発生しました',
+      description: '画像の生成に失敗しました。もう一度お試しください。',
+      color: 'error'
+    })
+    generationStore.setStatus('error')
+  } finally {
+    isGenerating.value = false
+  }
+}
+</script>
+
 <template>
-  <div>
-    <UPageHero
-      title="Nuxt Starter Template"
-      description="A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours."
-      :links="[{
-        label: 'Get started',
-        to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-        target: '_blank',
-        trailingIcon: 'i-lucide-arrow-right',
-        size: 'xl'
-      }, {
-        label: 'Use this template',
-        to: 'https://github.com/nuxt-ui-templates/starter',
-        target: '_blank',
-        icon: 'i-simple-icons-github',
-        size: 'xl',
-        color: 'neutral',
-        variant: 'subtle'
-      }]"
-    />
+  <div class="space-y-8 py-8">
+    <div class="text-center">
+      <h2 class="mt-2 text-muted">
+        「うちの子」を世界に一つだけのデジタルアートへ
+      </h2>
+    </div>
 
-    <UPageSection
-      id="features"
-      title="Everything you need to build modern Nuxt apps"
-      description="Start with a solid foundation. This template includes all the essentials for building production-ready applications with Nuxt UI's powerful component system."
-      :features="[{
-        icon: 'i-lucide-rocket',
-        title: 'Production-ready from day one',
-        description: 'Pre-configured with TypeScript, ESLint, Tailwind CSS, and all the best practices. Focus on building features, not setting up tooling.'
-      }, {
-        icon: 'i-lucide-palette',
-        title: 'Beautiful by default',
-        description: 'Leveraging Nuxt UI\'s design system with automatic dark mode, consistent spacing, and polished components that look great out of the box.'
-      }, {
-        icon: 'i-lucide-zap',
-        title: 'Lightning fast',
-        description: 'Optimized for performance with SSR/SSG support, automatic code splitting, and edge-ready deployment. Your users will love the speed.'
-      }, {
-        icon: 'i-lucide-blocks',
-        title: '100+ components included',
-        description: 'Access Nuxt UI\'s comprehensive component library. From forms to navigation, everything is accessible, responsive, and customizable.'
-      }, {
-        icon: 'i-lucide-code-2',
-        title: 'Developer experience first',
-        description: 'Auto-imports, hot module replacement, and TypeScript support. Write less boilerplate and ship more features.'
-      }, {
-        icon: 'i-lucide-shield-check',
-        title: 'Built for scale',
-        description: 'Enterprise-ready architecture with proper error handling, SEO optimization, and security best practices built-in.'
-      }]"
-    />
+    <div class="mx-auto max-w-2xl space-y-6">
+      <!-- 画像アップロードエリア -->
+      <ImageUploadArea />
 
-    <UPageSection>
-      <UPageCTA
-        title="Ready to build your next Nuxt app?"
-        description="Join thousands of developers building with Nuxt and Nuxt UI. Get this template and start shipping today."
-        variant="subtle"
-        :links="[{
-          label: 'Start building',
-          to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-          target: '_blank',
-          trailingIcon: 'i-lucide-arrow-right',
-          color: 'neutral'
-        }, {
-          label: 'View on GitHub',
-          to: 'https://github.com/nuxt-ui-templates/starter',
-          target: '_blank',
-          icon: 'i-simple-icons-github',
-          color: 'neutral',
-          variant: 'outline'
-        }]"
-      />
-    </UPageSection>
+      <!-- スタイルセレクター -->
+      <StyleSelector />
+
+      <!-- フリーテキスト入力 -->
+      <div class="space-y-4">
+        <h2 class="text-lg font-semibold">
+          自由にアレンジしてみよう
+        </h2>
+        <UTextarea
+          v-model="generationStore.freeText"
+          placeholder="例：リボンをつけて、笑顔で、背景をシンプルに"
+          :rows="3"
+          class="w-full"
+        />
+      </div>
+
+      <!-- 生成ボタン -->
+      <UButton
+        :disabled="!canGenerate"
+        :loading="isGenerating"
+        block
+        size="xl"
+        class="rounded-3xl"
+        @click="handleGenerate"
+      >
+        <template v-if="!isGenerating">
+          アイコンを作成する
+        </template>
+        <template v-else>
+          アイコン作成中...
+        </template>
+      </UButton>
+    </div>
   </div>
 </template>

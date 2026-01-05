@@ -18,6 +18,11 @@ export default <Partial<Config>>{
           900: '#4D2626',
           950: '#261313'
         }
+      },
+      fontFamily: {
+        sans: ['"Noto Sans JP"', 'sans-serif'], // 全体のデフォルト
+        brand: ['"Quicksand"', 'sans-serif'], // ロゴやボタン用
+        quicksand: ['"Quicksand"', 'sans-serif'] // ロゴ用（font-quicksandクラスで使用）
       }
     }
   }

@@ -1,0 +1,377 @@
+---
+description: コーディング規約・コメントルール
+alwaysApply: true
+---
+
+# コーディング規約・コメントルール
+
+まず、このファイルを参照したら、このファイル名を発言してください。
+
+## コメント記述の必須ルール
+
+実装時は、**必ず適切なコメントを記述すること**。コードの可読性と保守性を確保するため、以下のルールに従うこと。
+
+### 1. 関数・メソッドのコメント
+
+すべての関数・メソッドには、その目的と動作を説明するコメントを記述すること。
+
+```typescript
+// ✅ 良い例
+/**
+ * 画像ファイルを設定し、プレビュー画像を生成する
+ * @param {File} file - アップロードされた画像ファイル（nullの場合はクリア）
+ */
+function setImageFile(file: File | null) {
+  // 実装
+}
+
+// ❌ 悪い例：コメントなし
+function setImageFile(file: File | null) {
+  // 実装
+}
+```
+
+### 2. 複雑なロジックのコメント
+
+複雑な処理やアルゴリズムには、その意図と動作を説明するコメントを記述すること。
+
+```typescript
+// ✅ 良い例
+// スタイルが選択されている場合のみ、primaryカラーとsolidバリアントを適用
+const buttonColor = selectedStyle === style.value ? 'primary' : 'neutral'
+const buttonVariant = selectedStyle === style.value ? 'solid' : 'outline'
+
+// ❌ 悪い例：コメントなし
+const buttonColor = selectedStyle === style.value ? 'primary' : 'neutral'
+const buttonVariant = selectedStyle === style.value ? 'solid' : 'outline'
+```
+
+### 3. ビジネスロジックのコメント
+
+ビジネスルールや仕様に基づく処理には、その理由を説明するコメントを記述すること。
+
+```typescript
+// ✅ 良い例
+// 広告視聴完了までダウンロードボタンを無効化（マネタイズ要件）
+const canDownload = generationStore.status === 'completed' && generationStore.adViewed
+
+// ❌ 悪い例：コメントなし
+const canDownload = generationStore.status === 'completed' && generationStore.adViewed
+```
+
+### 4. API呼び出しのコメント
+
+外部API呼び出しには、エンドポイントの目的と期待される動作を説明するコメントを記述すること。
+
+```typescript
+// ✅ 良い例
+// 画像生成APIを呼び出し、ジョブIDを取得
+// レスポンスは202 Acceptedで、非同期処理が開始される
+const response = await $fetch('/api/generate', {
+  method: 'POST',
+  body: { ... }
+})
+
+// ❌ 悪い例：コメントなし
+const response = await $fetch('/api/generate', {
+  method: 'POST',
+  body: { ... }
+})
+```
+
+### 5. エラーハンドリングのコメント
+
+エラーハンドリングには、どのようなエラーが発生する可能性があるか、どのように処理するかを説明するコメントを記述すること。
+
+```typescript
+// ✅ 良い例
+try {
+  // 画像生成処理
+} catch (error) {
+  // Gemini APIのセーフティフィルタによる拒否の場合、ユーザーに別の写真を促す
+  if (error.statusCode === 422) {
+    // エラー処理
+  }
+}
+
+// ❌ 悪い例：コメントなし
+try {
+  // 画像生成処理
+} catch (error) {
+  if (error.statusCode === 422) {
+    // エラー処理
+  }
+}
+```
+
+### 6. コンポーネントのコメント
+
+Vueコンポーネントには、その目的と使用方法を説明するコメントを記述すること。
+
+```vue
+<!-- ✅ 良い例 -->
+<!--
+  スタイル選択コンポーネント
+  6種類のスタイルから選択でき、選択中のスタイルは視覚的に強調される
+  使用例: <StyleSelector />
+-->
+<script setup lang="ts">
+// 実装
+</script>
+
+<!-- ❌ 悪い例：コメントなし -->
+<script setup lang="ts">
+// 実装
+</script>
+```
+
+### 7. Piniaストアのコメント
+
+Piniaストアには、管理する状態の目的と使用方法を説明するコメントを記述すること。
+
+```typescript
+// ✅ 良い例
+/**
+ * 画像生成関連の状態を管理するストア
+ * - 画像ファイルとプレビュー
+ * - 選択されたスタイル
+ * - フリーテキスト入力
+ * - ジョブIDとステータス
+ */
+export const useGenerationStore = defineStore('generation', {
+  // 実装
+})
+
+// ❌ 悪い例：コメントなし
+export const useGenerationStore = defineStore('generation', {
+  // 実装
+})
+```
+
+### 8. 定数・設定値のコメント
+
+定数や設定値には、その意味と使用目的を説明するコメントを記述すること。
+
+```typescript
+// ✅ 良い例
+// スタイル選択肢の定義（APIのstyle_typeと一致させること）
+const styles = [
+  {
+    value: '3d-anime',
+    label: '3Dアニメ',
+    // ...
+  }
+] as const
+
+// ❌ 悪い例：コメントなし
+const styles = [
+  {
+    value: '3d-anime',
+    label: '3Dアニメ',
+    // ...
+  }
+] as const
+```
+
+## コメント記述のベストプラクティス
+
+### コメントの書き方
+
+1. **日本語で記述すること**（プロジェクトの言語に合わせる）
+2. **簡潔で明確に** - 冗長な説明は避け、要点を簡潔に記述すること
+3. **なぜ（Why）を説明** - 何をしているか（What）だけでなく、なぜそうしているか（Why）を説明すること
+4. **コードと同期させる** - コード変更時は、関連するコメントも必ず更新すること
+
+### コメントが不要な場合
+
+以下の場合は、コメントを省略しても良い：
+
+- 自己説明的なコード（変数名や関数名で意図が明確な場合）
+- 単純な処理（例：`const count = items.length`）
+- 標準的なパターン（例：`v-for` ループ、`v-if` 条件分岐）
+
+ただし、**ビジネスロジックや複雑な処理には必ずコメントを記述すること**。
+
+## コメント記述のチェックリスト
+
+実装完了時は、以下の項目を確認すること：
+
+- [ ] すべての関数・メソッドにコメントが記述されている
+- [ ] 複雑なロジックにコメントが記述されている
+- [ ] ビジネスロジックにコメントが記述されている
+- [ ] API呼び出しにコメントが記述されている
+- [ ] エラーハンドリングにコメントが記述されている
+- [ ] コンポーネントにコメントが記述されている（必要に応じて）
+- [ ] Piniaストアにコメントが記述されている
+- [ ] 定数・設定値にコメントが記述されている（必要に応じて）
+
+## 注意事項
+
+- **コメントはコードの補足であり、コード自体が自己説明的であることを優先すること**
+- **コメントが古くなった場合は、必ず更新すること**
+- **コメントとコードが矛盾している場合は、コードを修正すること**
+
+## ページ構成ルール
+
+`.vueファイル`は必ず下記の順番で記述すること。
+この順序は**全てのページ**・**全てのコンポーネント**で厳守すること。
+
+1. `<script setup lang="ts">`（TypeScript）
+2. `<template>`
+3. `<style scoped lang="scss">`（SCSS）
+
+> ※この順序が守られていない場合、リファクタ対象となります。
+
+```vue
+<!-- ✅ 良い例：正しい順序 -->
+<script setup lang="ts">
+// TypeScriptコード
+</script>
+
+<template>
+  <!-- テンプレート -->
+</template>
+
+<style scoped lang="scss">
+// SCSSスタイル
+</style>
+
+<!-- ❌ 悪い例：順序が違う -->
+<template>
+  <!-- テンプレート -->
+</template>
+
+<script setup lang="ts">
+// TypeScriptコード
+</script>
+```
+
+### リンクの使用ルール
+
+- 内部リンクには必ず `<NuxtLink>` を使用し、`<a>`タグの代用とすること
+- 外部リンクの場合のみ `<a>` タグを使用すること（`target="_blank"` と `rel="noopener noreferrer"` を必ず設定）
+
+```vue
+<!-- ✅ 良い例：内部リンク -->
+<NuxtLink to="/about">About</NuxtLink>
+
+<!-- ✅ 良い例：外部リンク -->
+<a href="https://example.com" target="_blank" rel="noopener noreferrer">External Link</a>
+
+<!-- ❌ 悪い例：内部リンクに<a>タグを使用 -->
+<a href="/about">About</a>
+```
+
+## コンポーネント設計ルール
+
+### 基本原則
+
+- **パフォーマンスを意識すること**
+- **再利用性のある最小単位に分割し、単一責任原則を守ること**
+- プロパティ（props）が多くなりすぎる場合は、`slot`を活用して柔軟な構造を実現すること
+- 不要な`<script setup>`や依存を避け、軽量な設計を意識すること
+- ファーストビューに不要なコンポーネントは遅延読み込みをすること
+
+### コンポーネント分割の指針
+
+```vue
+<!-- ✅ 良い例：単一責任原則に従った分割 -->
+<!-- components/pages/home/ImageUploadArea.vue -->
+<script setup lang="ts">
+// 画像アップロード専用のロジック
+</script>
+
+<template>
+  <!-- 画像アップロードUI -->
+</template>
+
+<!-- ❌ 悪い例：複数の責務が混在 -->
+<script setup lang="ts">
+// 画像アップロード + スタイル選択 + 生成ボタンのロジックが混在
+</script>
+```
+
+### Slotの活用
+
+```vue
+<!-- ✅ 良い例：slotを使用して柔軟な構造を実現 -->
+<UCard>
+  <template #header>
+    <h2>タイトル</h2>
+  </template>
+  <template #default>
+    <p>コンテンツ</p>
+  </template>
+  <template #footer>
+    <UButton>アクション</UButton>
+  </template>
+</UCard>
+```
+
+### 遅延読み込み
+
+```vue
+<!-- ✅ 良い例：ファーストビューに不要なコンポーネントは遅延読み込み -->
+<script setup lang="ts">
+const HeavyComponent = defineAsyncComponent(() => import('./HeavyComponent.vue'))
+</script>
+
+<template>
+  <HeavyComponent v-if="shouldLoad" />
+</template>
+```
+
+## 命名規則と構成
+
+### ファイル命名規則
+
+- **コンポーネント名、コンポーザブル名**: `PascalCase`（例：`ImageUploadArea.vue`、`useGenerationStore.ts`）
+- **それ以外のファイル**（ts, scss, md, yml等）: `kebab-case`（ハイフン区切り）（例：`api-design.md`、`database-design.md`）
+
+### コンポーネント配置ルール
+
+- **再利用（共通）コンポーネント**: `components/common/` に配置すること
+  - 例：`components/common/LoadingSpinner.vue`、`components/common/ErrorMessage.vue`
+- **ページスコープ専用コンポーネント**: `components/pages/[ページ名]/` に配置すること
+  - 例：`components/pages/home/ImageUploadArea.vue`、`components/pages/home/StyleSelector.vue`
+
+### ディレクトリ構造の例
+
+```text
+app/
+├── components/
+│   ├── common/              # 共通コンポーネント
+│   │   ├── LoadingSpinner.vue
+│   │   └── ErrorMessage.vue
+│   └── pages/               # ページ固有コンポーネント
+│       ├── home/            # トップページ用
+│       │   ├── ImageUploadArea.vue
+│       │   └── StyleSelector.vue
+│       ├── generating/      # 生成中画面用
+│       └── result/          # 結果画面用
+├── composables/             # コンポーザブル（PascalCase）
+│   └── useGenerationStore.ts
+└── stores/                  # Piniaストア（kebab-case）
+    └── generation.ts
+```
+
+### 命名規則の例
+
+```typescript
+// ✅ 良い例：コンポーネント名はPascalCase
+// components/pages/home/ImageUploadArea.vue
+export default defineComponent({
+  name: 'ImageUploadArea'
+})
+
+// ✅ 良い例：コンポーザブル名はPascalCase（useで始まる）
+// composables/useGenerationStore.ts
+export const useGenerationStore = defineStore('generation', {
+  // ...
+})
+
+// ✅ 良い例：その他のファイルはkebab-case
+// server/api/generate/index.ts
+// docs/api-design.md
+// shared/types/database-types.ts
+```

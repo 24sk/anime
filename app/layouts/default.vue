@@ -50,10 +50,10 @@ const helpModalOpen = ref(false)
 
               <div>
                 <h3 class="font-semibold mb-2">
-                  3. 追加の要望を入力（任意）
+                  3. フリーテキストを入力（任意）
                 </h3>
                 <p class="text-sm text-muted">
-                  「リボンをつけて」「笑顔で」など、追加の要望があれば入力してください。
+                  「リボンをつけて」「笑顔で」など、フリーテキストがあれば入力してください。
                 </p>
               </div>
 

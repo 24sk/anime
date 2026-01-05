@@ -62,6 +62,9 @@ pnpm add -D @types/uuid
 # Zod（スキーマバリデーション）
 pnpm add zod
 
+# Pinia（状態管理）
+pnpm add pinia @pinia/nuxt
+
 # 日付処理ライブラリ（必要に応じて）
 pnpm add date-fns
 ```
@@ -92,6 +95,7 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@nuxtjs/supabase', // Supabase統合モジュール（必須）
     '@nuxt/image', // 画像最適化（必要に応じて）
+    '@pinia/nuxt', // Pinia状態管理（必須）
   ],
   // Supabase設定
   supabase: {
@@ -277,6 +281,7 @@ anime/
 │   ├── middleware/      # ルートミドルウェア
 │   ├── pages/           # ページコンポーネント（ファイルベースルーティング）
 │   ├── plugins/         # プラグイン
+│   ├── stores/          # Piniaストア（自動インポート）
 │   ├── utils/           # ユーティリティ関数（自動インポート）
 │   ├── app.vue          # ルートコンポーネント
 │   ├── app.config.ts    # アプリケーション設定
@@ -311,6 +316,7 @@ mkdir -p app/layouts
 mkdir -p app/middleware
 mkdir -p app/pages
 mkdir -p app/plugins
+mkdir -p app/stores
 mkdir -p app/utils
 
 # サーバーサイドディレクトリ（ルートに配置）
@@ -482,13 +488,14 @@ Supabaseクライアントが正しく動作することを確認：
 セットアップ完了後、以下の項目を確認してください：
 
 - [x] Nuxt 4プロジェクトが正常に作成されている
-- [x] すべての依存関係がインストールされている
+- [x] すべての依存関係がインストールされている（Pinia含む）
 - [ ] `.env`ファイルが正しく設定されている
 - [ ] Supabaseプロジェクトが作成され、データベーススキーマが適用されている
 - [ ] Vercel Blobストレージが作成されている
 - [x] NuxtUIが正しく設定されている
+- [x] Piniaが正しく設定されている（`@pinia/nuxt`モジュール追加済み）
 - [x] Tailwind CSSが動作している
-- [x] ディレクトリ構造が作成されている
+- [x] ディレクトリ構造が作成されている（`app/stores/`含む）
 - [x] Supabaseから型が生成されている（`shared/types/database.types.ts`）
 - [x] Zodスキーマが設定されている
 - [ ] 型定義ファイルが作成されている

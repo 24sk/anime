@@ -1,18 +1,33 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-@theme static {
-  --font-sans: 'Public Sans', sans-serif;
+@theme {
+  /* Nuxt UI v3 はこの --color-primary を自動的に参照します */
+  --color-primary-50: #FFF5F5;
+  --color-primary-100: #FFE6E6;
+  --color-primary-200: #FFCDCD;
+  --color-primary-300: #FFB3B3;
+  --color-primary-400: #FF9A9A;
+  --color-primary-500: #FF7F7F; /* これがボタンなどのメイン色になります */
+  --color-primary-600: #E67272;
+  --color-primary-700: #B35959;
+  --color-primary-800: #803F3F;
+  --color-primary-900: #4D2626;
+  --color-primary-950: #261313;
 
-  --color-green-50: #EFFDF5;
-  --color-green-100: #D9FBE8;
-  --color-green-200: #B3F5D1;
-  --color-green-300: #75EDAE;
-  --color-green-400: #00DC82;
-  --color-green-500: #00C16A;
-  --color-green-600: #00A155;
-  --color-green-700: #007F45;
-  --color-green-800: #016538;
-  --color-green-900: #0A5331;
-  --color-green-950: #052E16;
+  --color-brand-50: #F8FAFC;
+  --color-brand-100: #F1F5F9;
+  --color-brand-200: #E2E8F0;
+  --color-brand-300: #CBD5E1;
+  --color-brand-400: #94A3B8;
+  --color-brand-500: #64748B;
+  --color-brand-600: #475569; /* ロゴに近い色 */
+  --color-brand-700: #334155; /* よりはっきりした文字色 */
+  --color-brand-800: #1E293B;
+  --color-brand-900: #0F172A;
+  --color-brand-950: #020617;
+
+  /* フォントの設定 */
+  --font-sans: "Noto Sans JP", sans-serif;
+  --font-brand: "Quicksand", sans-serif;
 }

@@ -8,6 +8,7 @@ alwaysApply: true
 | レイヤー | 技術 | 用途 |
 | -------- | ---- | ---- |
 | **フロントエンド** | **Nuxt 4** | Vueフレームワークによる高速UX |
+| **状態管理** | **Pinia** | ページ間での状態共有とデータ管理 |
 | **BaaS (DB)** | **Supabase** | PostgreSQLによるジョブ管理・リアルタイムステータス更新 |
 | **バックエンド** | **Nitro (Nuxt 4)** | Gemini APIとの通信、署名付きURLの発行、ロジック管理 |
 | **画像生成API** | **Gemini (Imagen 3)** | Image-to-Imageによる高精度生成 |
