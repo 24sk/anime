@@ -427,7 +427,7 @@ export function getSupabaseClient() {
 - `nuxt.config.ts`の`runtimeConfig.public`に`supabaseUrl`と`supabaseKey`を設定してください
 - 環境変数は`NUXT_PUBLIC_SUPABASE_URL`と`NUXT_PUBLIC_SUPABASE_KEY`として設定します
 
-- [ ] 2.4.2 ポーリング用のエンドポイント作成
+- [x] 2.4.2 ポーリング用のエンドポイント作成
 
 202 Acceptedで`job_id`を返した後、フロントエンドは「生成が完了したか」を確認する必要があります。Supabase Realtimeを使用する場合は不要ですが、フォールバックとしてポーリング用のエンドポイントを作成します。
 
@@ -1180,7 +1180,7 @@ export default defineNuxtConfig({
 - [x] `server/api/generate.post.ts`が作成されている
 - [x] `server/utils/rate-limit.ts`が作成され、レートリミットチェックが実装されている
 - [x] `server/api/generate.post.ts`にレートリミットチェックが統合されている
-- [ ] `server/api/jobs/[id].get.ts`が作成され、ポーリング用エンドポイントが実装されている
+- [x] `server/api/jobs/[id].get.ts`が作成され、ポーリング用エンドポイントが実装されている
 - [x] リクエストボディのバリデーションが実装されている
 - [x] Gemini APIを使用した画像解析ロジックが実装されている
 - [x] Imagen 3を使用した画像生成ロジックが実装されている
