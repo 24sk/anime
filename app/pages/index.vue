@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import { v4 as uuidv4 } from 'uuid'
+import { useAnonSession } from '~/composables/useAnonSession'
+
 const generationStore = useGenerationStore()
 const router = useRouter()
 const toast = useToast()
+const { getAnonSessionId } = useAnonSession()
 
 const isGenerating = ref(false)
 
@@ -9,8 +13,74 @@ const canGenerate = computed(() => {
   return generationStore.imageFile !== null && generationStore.selectedStyle !== null
 })
 
+/**
+ * 画像をVercel Blobにアップロードする
+ * @param {File} imageFile - アップロードする画像ファイル
+ * @returns {Promise<string>} アップロードされた画像のURL
+ */
+const uploadImageToBlob = async (imageFile: File): Promise<string> => {
+  // 署名付きURLを取得
+  const filename = `${uuidv4()}_${imageFile.name}`
+  const contentType = imageFile.type || 'image/jpeg'
+
+  const { uploadUrl, accessUrl } = await $fetch<{ uploadUrl: string, accessUrl: string }>('/api/upload/presign', {
+    method: 'POST',
+    body: {
+      filename,
+      contentType
+    }
+  })
+
+  // 署名付きURLに画像をアップロード
+  await $fetch(uploadUrl, {
+    method: 'PUT',
+    body: imageFile,
+    headers: {
+      'Content-Type': contentType
+    }
+  })
+
+  return accessUrl
+}
+
+/**
+ * 画像生成APIを呼び出す
+ * @param {string} anonSessionId - 匿名セッションID
+ * @param {string} sourceImageUrl - アップロードされた画像のURL
+ * @param {string} styleType - スタイルタイプ
+ * @returns {Promise<{ job_id: string, status: string }>} ジョブIDとステータス
+ */
+const callGenerateAPI = async (
+  anonSessionId: string,
+  sourceImageUrl: string,
+  styleType: string
+): Promise<{ job_id: string, status: string }> => {
+  const response = await $fetch<{ job_id: string, status: string }>('/api/generate', {
+    method: 'POST',
+    body: {
+      anon_session_id: anonSessionId,
+      source_image_url: sourceImageUrl,
+      style_type: styleType
+    }
+  })
+
+  return response
+}
+
+/**
+ * 画像生成処理を開始する
+ */
 const handleGenerate = async () => {
   if (!canGenerate.value || isGenerating.value) {
+    return
+  }
+
+  if (!generationStore.imageFile || !generationStore.selectedStyle) {
+    toast.add({
+      title: 'エラー',
+      description: '画像とスタイルを選択してください。',
+      color: 'error'
+    })
     return
   }
 
@@ -18,15 +88,35 @@ const handleGenerate = async () => {
     isGenerating.value = true
     generationStore.setStatus('generating')
 
-    // TODO: 画像をVercel Blobにアップロード
-    // TODO: APIリクエストを送信
-    // 現在はモックとして生成中画面へ遷移
+    // 匿名セッションIDを取得
+    const anonSessionId = getAnonSessionId()
+
+    // 画像をVercel Blobにアップロード
+    const sourceImageUrl = await uploadImageToBlob(generationStore.imageFile)
+
+    // 画像生成APIを呼び出し
+    const { job_id } = await callGenerateAPI(anonSessionId, sourceImageUrl, generationStore.selectedStyle)
+
+    // ジョブIDをストアに保存
+    generationStore.setJobId(job_id)
+
+    // 生成中画面へ遷移
     await router.push('/generating')
   } catch (error) {
     console.error('生成エラー:', error)
+
+    // エラーメッセージを取得
+    let errorMessage = '画像の生成に失敗しました。もう一度お試しください。'
+    if (error && typeof error === 'object' && 'data' in error) {
+      const errorData = error.data as { message?: string }
+      if (errorData?.message) {
+        errorMessage = errorData.message
+      }
+    }
+
     toast.add({
       title: 'エラーが発生しました',
-      description: '画像の生成に失敗しました。もう一度お試しください。',
+      description: errorMessage,
       color: 'error'
     })
     generationStore.setStatus('error')

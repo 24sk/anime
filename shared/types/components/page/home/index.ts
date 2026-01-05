@@ -1,8 +1,4 @@
-/** スタイルタイプの定義 */
-export const styleTypes = ['3d-anime', 'watercolor', 'fluffy', 'cyberpunk', 'korean-style', 'simple-illustration'] as const
-
-/** スタイルタイプの型 */
-export type StyleType = typeof styleTypes[number]
+import type { StyleType } from '~~/shared/types/style'
 
 /**
  * スタイル選択肢の型定義

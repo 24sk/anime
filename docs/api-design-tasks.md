@@ -36,7 +36,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
 #### 1.2 Vercel Blob
 
-- [ ] 1.2.1 Vercel プロジェクトを作成し、Storage タブから Blob を有効化
+- [x] 1.2.1 Vercel プロジェクトを作成し、Storage タブから Blob を有効化
 
 1. [Vercel Dashboard](https://vercel.com/dashboard)にアクセス
 2. プロジェクトを作成（既存のプロジェクトを使用する場合はそのプロジェクトを選択）
@@ -44,7 +44,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 4. 「Create Database」→「Blob」を選択
 5. Blobストレージを作成
 
-- [ ] 1.2.2 `BLOB_READ_WRITE_TOKEN` を取得し、`.env` に追加
+- [x] 1.2.2 `BLOB_READ_WRITE_TOKEN` を取得し、`.env` に追加
 
 1. Vercel Dashboardの「Storage」タブから、作成したBlobストレージを選択
 2. 「Settings」タブから「Environment Variables」を確認
@@ -66,17 +66,13 @@ pnpm add @google/generative-ai
 
 # Vercel Blob SDK
 pnpm add @vercel/blob
-
-# UUID生成ライブラリ（既にインストール済みの場合はスキップ）
-pnpm add uuid
-pnpm add -D @types/uuid
 ```
 
 ### 2. Server API の基本基盤作成
 
 #### 2.1 API エンドポイント定義
 
-- [ ] 2.1.1 `server/api/generate.post.ts` の新規作成
+- [x] 2.1.1 `server/api/generate.post.ts` の新規作成
 
 `server/api/generate.post.ts`を作成し、基本的なエンドポイント構造を実装：
 
@@ -105,7 +101,7 @@ export default defineEventHandler(async (event: H3Event) => {
 })
 ```
 
-- [ ] 2.1.2 フロントエンドからのリクエストボディの受け取りとバリデーション
+- [x] 2.1.2 フロントエンドからのリクエストボディの受け取りとバリデーション
 
 ```typescript
 export default defineEventHandler(async (event: H3Event) => {
@@ -122,7 +118,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
 #### 2.2 ランタイム設定
 
-- [ ] 2.2.1 `nuxt.config.ts` の `runtimeConfig` に API キーを登録（セキュリティ確保）
+- [x] 2.2.1 `nuxt.config.ts` の `runtimeConfig` に API キーを登録（セキュリティ確保）
 
 `nuxt.config.ts`に以下を追加：
 
@@ -168,7 +164,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
 #### 2.3 レートリミット実装
 
-- [ ] 2.3.1 IPアドレスの取得とハッシュ化ロジックの実装
+- [x] 2.3.1 IPアドレスの取得とハッシュ化ロジックの実装
 
 `server/utils/rate-limit.ts`を作成：
 
@@ -350,7 +346,7 @@ export async function checkRateLimit(
 }
 ```
 
-- [ ] 2.3.2 `server/api/generate.post.ts` にレートリミットチェックを統合
+- [x] 2.3.2 `server/api/generate.post.ts` にレートリミットチェックを統合
 
 `server/api/generate.post.ts`のリクエスト処理の最初でレートリミットチェックを実行：
 
@@ -397,7 +393,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
 #### 2.4 サーバーサイド用Supabaseクライアントの作成
 
-- [ ] 2.4.1 `server/utils/supabase.ts` の作成
+- [x] 2.4.1 `server/utils/supabase.ts` の作成
 
 クライアント用のcomposable（`useSupabase`）はサーバーサイドでは動作しないため、サーバーサイド専用のSupabaseクライアントを作成します。
 
@@ -492,7 +488,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
 #### 3.1 マルチモーダル設定
 
-- [ ] 3.1.1 `gemini-2.0-flash` モデルを使用して、アップロードされた元画像を解析するロジックの実装
+- [x] 3.1.1 `gemini-2.0-flash` モデルを使用して、アップロードされた元画像を解析するロジックの実装
 
 **注意**: 最新のモデルは「Gemini 2.0 Flash」（2025年1月30日リリース）です。APIでの実際のモデル名は[Google AI Studio Documentation](https://ai.google.dev/docs)で最新の情報を確認してください。
 
@@ -549,7 +545,7 @@ export async function analyzePetImage(imageUrl: string): Promise<string> {
 
 #### 3.2 システムプロンプトの設計
 
-- [ ] 3.2.1 ターゲットペルソナ（30代飼い主）向けに、ペットの特徴（毛色・種類・装飾品）を抽出する指示出しの作成
+- [x] 3.2.1 ターゲットペルソナ（30代飼い主）向けに、ペットの特徴（毛色・種類・装飾品）を抽出する指示出しの作成
 
 `server/utils/prompts.ts`を作成：
 
@@ -598,13 +594,13 @@ export function getImageGenerationPrompt(
 }
 ```
 
-- [ ] 3.2.2 選択されたスタイル（3Dアニメ、水彩画等）を英語の画像生成用プロンプトに変換するロジック
+- [x] 3.2.2 選択されたスタイル（3Dアニメ、水彩画等）を英語の画像生成用プロンプトに変換するロジック
 
 上記の`getImageGenerationPrompt`関数を実装し、スタイルタイプとペットの特徴説明を組み合わせて画像生成用プロンプトを生成します。
 
 #### 3.3 Imagen 3 (画像生成) の統合
 
-- [ ] 3.3.1 Gemini API を介して Imagen モデルを呼び出し、実際の画像を生成する実装
+- [x] 3.3.1 Gemini API を介して Imagen モデルを呼び出し、実際の画像を生成する実装
 
 `server/utils/gemini.ts`に画像生成関数を追加：
 
@@ -647,7 +643,7 @@ export async function generateImageWithImagen(
 
 #### 4.1 画像アップロードの実装
 
-- [ ] 4.1.1 生成された画像（または処理後の画像）を `put()` メソッドで Vercel Blob にアップロード
+- [x] 4.1.1 生成された画像（または処理後の画像）を `put()` メソッドで Vercel Blob にアップロード
 
 `server/utils/blob.ts`を作成：
 
@@ -708,7 +704,7 @@ export async function deleteImageFromBlob(url: string): Promise<void> {
 }
 ```
 
-- [ ] 4.1.2 `uuid` を使用した一意のファイル名管理
+- [x] 4.1.2 `uuid` を使用した一意のファイル名管理
 
 上記の`uploadImageToBlob`関数で、`jobId`（UUID）を使用して一意のファイル名を生成しています。`server/api/generate.post.ts`でジョブIDを生成する際に`uuid`を使用：
 
@@ -719,9 +715,120 @@ import { v4 as uuidv4 } from 'uuid'
 const jobId = uuidv4()
 ```
 
+- [ ] 4.1.4 画像アップロード用署名付きURL発行エンドポイントの実装
+
+クライアントが直接Vercel Blobへ元画像をアップロードするための署名付きURLを発行するエンドポイントを実装します。
+
+`server/api/upload/presign.post.ts`を作成：
+
+```typescript
+import { z } from 'zod'
+import type { H3Event } from 'h3'
+import { put } from '@vercel/blob'
+import { v4 as uuidv4 } from 'uuid'
+import { createErrorResponse, ErrorCodes, ERROR_MESSAGES } from '~~/server/utils/errors'
+
+// リクエストボディのスキーマ定義
+const presignRequestSchema = z.object({
+  filename: z.string().min(1, 'ファイル名が指定されていません'),
+  contentType: z.string().refine(
+    (val) => val.startsWith('image/'),
+    { message: '画像ファイルのみアップロード可能です' }
+  )
+})
+
+/**
+ * 画像アップロード用署名付きURLを発行するエンドポイント
+ * @param {H3Event} event - H3イベントオブジェクト
+ * @returns {Promise<{ uploadUrl: string; accessUrl: string }>} 署名付きURLとアクセスURL
+ */
+export default defineEventHandler(async (event: H3Event) => {
+  try {
+    const config = useRuntimeConfig()
+
+    if (!config.blobReadWriteToken) {
+      throw createErrorResponse(500, ErrorCodes.INTERNAL_SERVER_ERROR, 'BLOB_READ_WRITE_TOKENが設定されていません')
+    }
+
+    // リクエストボディを取得
+    const body = await readBody(event)
+
+    // Zodスキーマでバリデーション
+    const validatedData = presignRequestSchema.parse(body)
+
+    // 一意のファイル名を生成（UUID + 元のファイル名）
+    const uniqueFilename = `${uuidv4()}_${validatedData.filename}`
+    const path = `uploads/temp/${uniqueFilename}`
+
+    // 署名付きURLを生成（Vercel Blob SDKのputメソッドを使用）
+    // 注意: Vercel Blob SDKは署名付きURLを直接生成する機能がないため、
+    // 一時的な空ファイルをアップロードしてURLを取得する方法を使用
+    // または、Vercel Blob APIを直接呼び出す方法を検討
+
+    // 一時的な空ファイルをアップロードしてURLを取得
+    const blob = await put(path, Buffer.from(''), {
+      access: 'public',
+      token: config.blobReadWriteToken,
+      contentType: validatedData.contentType,
+      addRandomSuffix: false
+    })
+
+    // 署名付きURLを生成（PUTメソッド用）
+    // Vercel Blobの署名付きURLは、putメソッドで取得したURLを使用
+    // クライアント側でPUTメソッドでアップロード可能
+    const uploadUrl = blob.url
+
+    return {
+      uploadUrl,
+      accessUrl: blob.url
+    }
+  } catch (error) {
+    // Zodバリデーションエラーの場合
+    if (error instanceof z.ZodError) {
+      throw createErrorResponse(400, ErrorCodes.INTERNAL_SERVER_ERROR, error.issues[0]?.message || 'バリデーションエラー')
+    }
+
+    // その他のエラー（既にH3Errorの場合はそのままthrow）
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error
+    }
+
+    // 予期しないエラー
+    throw createErrorResponse(500, ErrorCodes.INTERNAL_SERVER_ERROR, ERROR_MESSAGES[ErrorCodes.INTERNAL_SERVER_ERROR])
+  }
+})
+```
+
+**注意**:
+
+- Vercel Blob SDKは署名付きURLを直接生成する機能がないため、一時的な空ファイルをアップロードしてURLを取得する方法を使用しています
+- クライアント側では、取得した`uploadUrl`に対してPUTメソッドで画像をアップロードします
+- ファイル名はUUIDを付与して一意性を確保します
+- パス構造は`uploads/temp/`を使用し、一時的なアップロードとして扱います
+
+**代替実装案**:
+
+Vercel Blobの署名付きURL機能が利用可能な場合は、以下のような実装も検討できます：
+
+```typescript
+// Vercel Blob APIを直接呼び出して署名付きURLを生成
+const response = await $fetch('https://blob.vercel-storage.com/presign', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${config.blobReadWriteToken}`
+  },
+  body: {
+    path,
+    contentType: validatedData.contentType
+  }
+})
+```
+
+ただし、Vercel Blob SDKの最新バージョンで署名付きURL機能がサポートされているか確認が必要です。
+
 #### 4.2 接続テスト
 
-- [ ] 4.1.3 エラー発生時の `deleteImageFromBlob` 呼び出しの徹底
+- [x] 4.1.3 エラー発生時の `deleteImageFromBlob` 呼び出しの徹底
 
 生成に失敗した際や、一時的なアップロード画像を放置しないための処理を実装します。
 
@@ -807,7 +914,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
 #### 5.1 エラーハンドリング
 
-- [ ] 5.1.1 API 制限（Rate Limit）や不適切な画像が送られた際のエラーレスポンス設計
+- [x] 5.1.1 API 制限（Rate Limit）や不適切な画像が送られた際のエラーレスポンス設計
 
 `server/utils/errors.ts`を作成：
 
@@ -888,7 +995,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
 #### 5.2 レスポンス設計
 
-- [ ] 5.2.1 フロントエンドの「結果画面」で必要となる URL やメタデータを返す処理
+- [x] 5.2.1 フロントエンドの「結果画面」で必要となる URL やメタデータを返す処理
 
 `server/api/generate.post.ts`で、Supabaseにジョブを保存し、レスポンスを返す：
 
@@ -1069,19 +1176,19 @@ export default defineNuxtConfig({
 - [ ] `.env`ファイルに`BLOB_READ_WRITE_TOKEN`が設定されている
 - [x] 必要な依存パッケージがインストールされている（`@google/generative-ai`, `@vercel/blob`, `uuid`）
 - [ ] `nuxt.config.ts`の`runtimeConfig`にAPIキーが設定されている（空文字で自動読み込み）
-- [ ] `server/utils/supabase.ts`が作成され、サーバーサイド用のSupabaseクライアントが実装されている
-- [ ] `server/api/generate.post.ts`が作成されている
-- [ ] `server/utils/rate-limit.ts`が作成され、レートリミットチェックが実装されている
-- [ ] `server/api/generate.post.ts`にレートリミットチェックが統合されている
+- [x] `server/utils/supabase.ts`が作成され、サーバーサイド用のSupabaseクライアントが実装されている
+- [x] `server/api/generate.post.ts`が作成されている
+- [x] `server/utils/rate-limit.ts`が作成され、レートリミットチェックが実装されている
+- [x] `server/api/generate.post.ts`にレートリミットチェックが統合されている
 - [ ] `server/api/jobs/[id].get.ts`が作成され、ポーリング用エンドポイントが実装されている
-- [ ] リクエストボディのバリデーションが実装されている
-- [ ] Gemini APIを使用した画像解析ロジックが実装されている
-- [ ] Imagen 3を使用した画像生成ロジックが実装されている
-- [ ] Vercel Blobへの画像アップロードが実装されている
-- [ ] エラー発生時のVercel Blobクリーンアップ処理が実装されている
-- [ ] `event.waitUntil()`を使用した非同期処理が実装されている
-- [ ] エラーハンドリングが実装されている
-- [ ] 適切なレスポンスが返される（202 Accepted）
+- [x] リクエストボディのバリデーションが実装されている
+- [x] Gemini APIを使用した画像解析ロジックが実装されている
+- [x] Imagen 3を使用した画像生成ロジックが実装されている
+- [x] Vercel Blobへの画像アップロードが実装されている
+- [x] エラー発生時のVercel Blobクリーンアップ処理が実装されている
+- [x] `event.waitUntil()`を使用した非同期処理が実装されている
+- [x] エラーハンドリングが実装されている
+- [x] 適切なレスポンスが返される（202 Accepted）
 - [ ] タイムアウト設定が調整されている
 
 ## 次のステップ
