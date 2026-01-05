@@ -20,7 +20,7 @@
   {
     "anon_session_id": "string (UUID)",
     "source_image_url": "string (Vercel Blob URL)",
-    "style_type": "3d-anime | watercolor | fluffy | cyberpunk"
+    "style_type": "3d-anime | watercolor | fluffy | cyberpunk | korean-style | simple-illustration"
   }
   ```
 
@@ -114,6 +114,8 @@ sequenceDiagram
 | `watercolor` | Create a soft watercolor painting of this pet. Artistic splashes, pastel colors, white background. |
 | `fluffy` | A cute, hand-drawn fluffy illustration. Warm and cozy vibes, simple lines. |
 | `cyberpunk` | Cool cyberpunk pet icon. Neon lights, futuristic accessories, vibrant glowing colors. |
+| `korean-style` | Create a modern Korean-style pet icon. Vibrant colors, smooth gradients, cute and charming design, popular K-pop aesthetic. |
+| `simple-illustration` | Create a simple, minimalist pet icon. Clean lines, solid colors, white or transparent background, modern and versatile. |
 
 ## 5. エラーハンドリング
 
