@@ -67,15 +67,14 @@ CREATE POLICY "Users can view their own jobs"
 ON generation_jobs FOR SELECT 
 USING (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id');
 
--- 追加: 生成リクエストは誰でも可能
-CREATE POLICY "Anyone can create jobs" 
-ON generation_jobs FOR INSERT 
-WITH CHECK (true);
+-- INSERT: ポリシーなし。anon では INSERT 不可。ジョブ作成はバックエンド（service_role）のみが実行する。
+-- レート制限・バリデーションは API 層で実施。
 
--- 更新: 自分のセッションに紐づく広告フラグのみ更新可能
+-- 更新: 自分のセッションに紐づく行のみ更新可能。WITH CHECK で更新後の行も同一セッションに限定（anon_session_id の書き換えを防止）
 CREATE POLICY "Users can update their own job status" 
 ON generation_jobs FOR UPDATE 
-USING (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id');
+USING (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id')
+WITH CHECK (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id');
 
 -- 6. レートリミット管理用テーブル
 CREATE TABLE IF NOT EXISTS rate_limits (
@@ -83,6 +82,29 @@ CREATE TABLE IF NOT EXISTS rate_limits (
     request_count INTEGER DEFAULT 1,
     last_request_at TIMESTAMPTZ DEFAULT now()
 );
+```
+
+### 3.1 既存環境の RLS 修正
+
+**INSERT ポリシー緩和の解消**  
+すでに `"Anyone can create jobs"` ポリシーで構築済みの場合は、以下を実行して anon による直接 INSERT を禁止する。
+
+**UPDATE ポリシーの明示的 WITH CHECK**  
+`"Users can update their own jobs"` / `"Users can update their own job status"` に明示的な WITH CHECK を付与し、スキャナの「常に true」検知を解消しつつ、更新後の行も同一セッションに限定する。
+
+```sql
+-- INSERT: 過剰に許可されていたポリシーを削除
+DROP POLICY IF EXISTS "Anyone can create jobs" ON generation_jobs;
+
+-- UPDATE: 既存ポリシーを削除（名前のゆれに対応）
+DROP POLICY IF EXISTS "Users can update their own jobs" ON generation_jobs;
+DROP POLICY IF EXISTS "Users can update their own job status" ON generation_jobs;
+
+-- UPDATE: USING と WITH CHECK を明示したポリシーを再作成
+CREATE POLICY "Users can update their own job status" 
+ON generation_jobs FOR UPDATE 
+USING (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id')
+WITH CHECK (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id');
 ```
 
 ## 4. ストレージ設計 (Vercel Blob)

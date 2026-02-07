@@ -58,7 +58,7 @@ alwaysApply: true
      - `generation_jobs`テーブルは`anon_session_id`ベースでRLSを設定すること
      - SELECT: 自分の`anon_session_id`と一致するレコードのみ参照可能
      - UPDATE: `ad_viewed`フラグの更新のみ、一致する`anon_session_id`を持つユーザーに許可
-     - INSERT: 誰でも可能（ただしサーバーサイドでレートリミット検証）
+     - INSERT: anon 用ポリシーは設けず、ジョブ作成はバックエンド（service_role）のみ。レート制限はAPI層で実施。
 
    * **Vercel Blob使用**
      - 画像アップロードは署名付きURL（`POST /api/upload/presign`）を使用

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { v4 as uuidv4 } from 'uuid'
 import { useAnonSession } from '~/composables/useAnonSession'
 
 const generationStore = useGenerationStore()
@@ -19,24 +18,27 @@ const canGenerate = computed(() => {
  * @returns {Promise<string>} アップロードされた画像のURL
  */
 const uploadImageToBlob = async (imageFile: File): Promise<string> => {
-  // 署名付きURLを取得
-  const filename = `${uuidv4()}_${imageFile.name}`
   const contentType = imageFile.type || 'image/jpeg'
 
+  // 1. サーバーから署名付きURLを取得
   const { uploadUrl, accessUrl } = await $fetch<{ uploadUrl: string, accessUrl: string }>('/api/upload/presign', {
     method: 'POST',
     body: {
-      filename,
+      filename: imageFile.name,
       contentType
     }
   })
 
-  // 署名付きURLに画像をアップロード
+  // 2. Fileオブジェクトをバイナリ(ArrayBuffer)に変換
+  // これを行わないと、$fetchがFileをJSONオブジェクトとしてシリアライズしてしまいます
+  const arrayBuffer = await imageFile.arrayBuffer()
+
+  // 3. 取得したURLにバイナリデータをPUT送信
   await $fetch(uploadUrl, {
     method: 'PUT',
-    body: imageFile,
+    body: arrayBuffer, // バイナリデータを直接渡す
     headers: {
-      'Content-Type': contentType
+      'Content-Type': contentType // ここで正しいMIMEタイプを指定
     }
   })
 
@@ -93,6 +95,7 @@ const handleGenerate = async () => {
 
     // 画像をVercel Blobにアップロード
     const sourceImageUrl = await uploadImageToBlob(generationStore.imageFile)
+    console.log('sourceImageUrl', sourceImageUrl)
 
     // 画像生成APIを呼び出し
     const { job_id } = await callGenerateAPI(anonSessionId, sourceImageUrl, generationStore.selectedStyle)
