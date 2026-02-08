@@ -4,13 +4,11 @@
  * サービス名・コンセプト・概要を記載。グローバルメニューから遷移する
  */
 
+// ページ固有のタイトル・説明（nuxt.config の titleTemplate により「AniMeについて」→「AniMeについて | AniMe」になる）
 useSeoMeta({
-  title: 'AniMeについて | うちの子を世界に一つだけのデジタルアートへ',
+  title: 'AniMeについて',
   description:
     'AniMe（アニミー）は、ペットの写真をAIでアイコン化するサービスです。「うちの子」を世界に一つだけのデジタルアートに。'
-})
-useHead({
-  title: 'AniMeについて | AniMe'
 })
 </script>
 

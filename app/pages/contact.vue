@@ -9,11 +9,8 @@ const contactEmail = import.meta.env.NUXT_PUBLIC_CONTACT_EMAIL ?? 'support@examp
 const mailtoLink = computed(() => `mailto:${contactEmail}`)
 
 useSeoMeta({
-  title: 'お問い合わせ | AniMe',
+  title: 'お問い合わせ',
   description: 'AniMe（アニミー）へのお問い合わせは、下記メールリンクからお願いいたします。'
-})
-useHead({
-  title: 'お問い合わせ | AniMe'
 })
 </script>
 

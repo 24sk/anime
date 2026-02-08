@@ -5,12 +5,9 @@
  */
 
 useSeoMeta({
-  title: 'よくある質問（FAQ） | AniMe',
+  title: 'よくある質問（FAQ）',
   description:
     'AniMe（アニミー）のよくある質問です。対応画像形式、生成時間、スタイルの違いなどをまとめています。'
-})
-useHead({
-  title: 'よくある質問（FAQ） | AniMe'
 })
 
 /** FAQの1項目 */

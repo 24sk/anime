@@ -18,6 +18,35 @@ export default defineNuxtConfig({
     enabled: true
   },
 
+  // 全体のSEOメタ情報（デフォルト）。ページごとの上書きは useSeoMeta で実施
+  app: {
+    head: {
+      title: 'AniMe - AIペットアイコンジェネレーター',
+      titleTemplate: '%s | AniMe',
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        {
+          name: 'description',
+          content:
+            '「うちの子」を世界に一つだけのデジタルアートへ。ペットの写真をAIで可愛いアイコンに変換します。'
+        },
+        {
+          property: 'og:title',
+          content: 'AniMe - AIペットアイコンジェネレーター'
+        },
+        {
+          property: 'og:description',
+          content:
+            '「うちの子」を世界に一つだけのデジタルアートへ。ペットの写真をAIで可愛いアイコンに変換します。'
+        },
+        { name: 'twitter:card', content: 'summary_large_image' }
+      ],
+      link: [{ rel: 'icon', href: '/favicon.ico' }],
+      htmlAttrs: { lang: 'ja' }
+    }
+  },
+
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {

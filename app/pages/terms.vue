@@ -5,12 +5,9 @@
  */
 
 useSeoMeta({
-  title: '利用規約・プライバシーポリシー | AniMe',
+  title: '利用規約・プライバシーポリシー',
   description:
     'AniMe（アニミー）の利用規約とプライバシーポリシーです。サービスご利用前にご確認ください。'
-})
-useHead({
-  title: '利用規約・プライバシーポリシー | AniMe'
 })
 </script>
 

@@ -14,9 +14,7 @@ const isPreviewMode
   = import.meta.dev
     && route.query.preview === '1'
 
-useHead({
-  title: '生成中 - AniMe'
-})
+useSeoMeta({ title: '生成中' })
 
 /** 最低待機時間（ミリ秒）。生成完了後もこの時間が経過するまで次へ進まない */
 const MIN_WAIT_MS = 10_000
