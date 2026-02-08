@@ -100,10 +100,12 @@ async function sendFeedback(type: 'good' | 'bad') {
 
 /**
  * 結果画面ではブラウザバック・戻るを無効にする
- * ただし AniMe ロゴクリック（トップへ）は許可。「もう一度作る」は goHome() で reset 後に遷移
+ * 許可する遷移: トップ（/）、LINEスタンプ作成（/result/line-stamp）。「もう一度作る」は goHome() で reset 後に遷移
  */
+const ALLOWED_LEAVE_PATHS: string[] = ['/', '/result/line-stamp'];
+
 onBeforeRouteLeave((to, _from, next) => {
-  if (generationStore.status === 'completed' && to.path !== '/') {
+  if (generationStore.status === 'completed' && !ALLOWED_LEAVE_PATHS.includes(to.path)) {
     toast.add({
       title: '「もう一度作る」からトップへ戻れます',
       color: 'warning'

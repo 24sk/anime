@@ -63,8 +63,7 @@ onMounted(() => {
     </h1>
 
     <!-- 申請注記（仕様 5.6 A: ヘッダー直下に1回表示、LINE Creators Market リンク併記） -->
-    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
-      LINEクリエイターズマーケットへの申請はご自身でお願いします。
+    <p class="text-xs text-gray-600 dark:text-gray-400 mb-6 text-center">
       <a
         href="https://creator.line.me/ja/"
         target="_blank"
@@ -73,6 +72,7 @@ onMounted(() => {
       >
         LINE Creators Market
       </a>
+      への申請はご自身でお願いします。
     </p>
 
     <!-- 元画像なしの場合はリダイレクトされるため、表示時は必ず resultImageUrl が存在する -->
@@ -82,9 +82,6 @@ onMounted(() => {
       class="space-y-6"
     >
       <section>
-        <h2 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          元のアイコン
-        </h2>
         <UCard class="overflow-hidden ring-4 ring-primary-100 dark:ring-primary-900 border-0 shadow-xl">
           <div class="aspect-square w-full">
             <NuxtImg

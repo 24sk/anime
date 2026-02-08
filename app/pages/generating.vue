@@ -57,12 +57,19 @@ const progressIntervalId = ref<ReturnType<typeof setInterval> | null>(null);
 let navigateCheckTimerId: ReturnType<typeof setInterval> | null = null;
 let realtimeChannel: { unsubscribe: () => void } | null = null;
 let pollIntervalId: ReturnType<typeof setInterval> | null = null;
+/** プログレス100%到達時の再チェックを1回だけ行ったか */
+let progress100CheckDone = false;
 
 /**
  * 生成中・完了待ちの間は戻る・ブラウザバックを無効にする
- * エラー時は「もう一度やり直す」で離脱できるように許可する
+ * 結果画面（/result）への遷移は許可し、エラー時は「もう一度やり直す」で離脱できるように許可する
  */
-onBeforeRouteLeave((_to, _from, next) => {
+onBeforeRouteLeave((to, _from, next) => {
+  // 結果画面への遷移は許可（tryNavigateToResult からの router.push を通す）
+  if (to.path === '/result' && generationStore.status === 'completed') {
+    next();
+    return;
+  }
   if (generationStore.status === 'generating' || generationStore.status === 'completed') {
     toast.add({
       title: '生成が完了するまでお待ちください',
@@ -111,6 +118,7 @@ async function fetchJobStatus(jobId: string): Promise<boolean> {
       progress.value = 100;
       if (!navigateCheckTimerId) {
         navigateCheckTimerId = setInterval(tryNavigateToResult, 500);
+        tryNavigateToResult();
       }
       return true;
     }
@@ -127,7 +135,7 @@ async function fetchJobStatus(jobId: string): Promise<boolean> {
   return false;
 }
 
-onMounted(() => {
+onMounted(async () => {
   // 開発時プレビュー: エラー表示を確認する（?preview=1&error=1）
   if (isPreviewMode && route.query.error === '1') {
     generationStore.setStatus('error');
@@ -155,11 +163,20 @@ onMounted(() => {
 
   // プログレスバーを0→100へ約14秒でシミュレーション（AI処理進捗の演出）
   const progressStep = 100 / (14_000 / 180);
-  progressIntervalId.value = setInterval(() => {
+  progressIntervalId.value = setInterval(async () => {
     progress.value = Math.min(100, Math.round(progress.value + progressStep));
     if (progress.value >= 100 && progressIntervalId.value) {
       clearInterval(progressIntervalId.value);
       progressIntervalId.value = null;
+      // 演出で100%になっても未だ完了通知が来ていない場合の救済：1回だけAPIで状態を確認
+      if (!progress100CheckDone && generationStore.status === 'generating' && jobId) {
+        progress100CheckDone = true;
+        const done = await fetchJobStatus(jobId);
+        if (done && pollIntervalId) {
+          clearInterval(pollIntervalId);
+          pollIntervalId = null;
+        }
+      }
     }
   }, 180);
 
@@ -190,6 +207,7 @@ onMounted(() => {
             progress.value = 100;
             if (!navigateCheckTimerId) {
               navigateCheckTimerId = setInterval(tryNavigateToResult, 500);
+              tryNavigateToResult();
             }
           }
           if (row.status === 'failed') {
@@ -203,16 +221,20 @@ onMounted(() => {
       )
       .subscribe();
 
-    // ポーリング: Realtime が届かない環境でも完了・失敗を検知する（約2.5秒ごと）
-    const POLL_INTERVAL_MS = 2500;
-    pollIntervalId = setInterval(async () => {
-      if (generationStore.status !== 'generating' && generationStore.status !== 'idle') return;
-      const done = await fetchJobStatus(jobId);
-      if (done && pollIntervalId) {
-        clearInterval(pollIntervalId);
-        pollIntervalId = null;
-      }
-    }, POLL_INTERVAL_MS);
+    // マウント直後に1回だけジョブ状態を取得（既に完了している場合に即反映）
+    const initialDone = await fetchJobStatus(jobId);
+    if (!initialDone) {
+      // ポーリング: Realtime が届かない環境でも完了・失敗を検知する（約2.5秒ごと）
+      const POLL_INTERVAL_MS = 2500;
+      pollIntervalId = setInterval(async () => {
+        if (generationStore.status !== 'generating' && generationStore.status !== 'idle') return;
+        const done = await fetchJobStatus(jobId);
+        if (done && pollIntervalId) {
+          clearInterval(pollIntervalId);
+          pollIntervalId = null;
+        }
+      }, POLL_INTERVAL_MS);
+    }
   }
 });
 
