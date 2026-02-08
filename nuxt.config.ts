@@ -80,6 +80,10 @@ export default defineNuxtConfig({
   // Supabase の node_modules 内の未使用インポート警告を抑制（ライブラリ側のため当プロジェクトでは修正不可）
   vite: {
     build: {
+      // NuxtUI・Google Fonts 等によりエントリCSSが大きくなるため警告閾値を引き上げ
+      chunkSizeWarningLimit: 700,
+      // @tailwindcss/vite がソースマップを返さないため警告を防ぐ（本番ではソースマップは不要）
+      sourcemap: false,
       rollupOptions: {
         onwarn(warning, warn) {
           if (!warning) {
