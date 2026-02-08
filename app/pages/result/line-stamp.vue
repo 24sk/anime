@@ -98,13 +98,11 @@ onMounted(() => {
         </UCard>
       </section>
 
-      <!-- 文言選択ブロック（仕様 5.2: 単語／セットタブ・チップ複数選択・おすすめ8個） -->
+      <!-- 文言選択ブロック（仕様 5.2: 単一選択＋自由入力） -->
       <StampPresetSelector />
 
-      <!-- プレビュー・ZIPダウンロードは後続タスクで実装 -->
-      <p class="text-sm text-gray-500 dark:text-gray-400">
-        プレビュー・ZIPダウンロードは準備中です。
-      </p>
+      <!-- スタンプを生成 CTA と AI 生成結果 1 枚表示（Canvas プレビューは廃止・仕様 5.2） -->
+      <StampGenerateBlock />
     </div>
   </div>
 </template>

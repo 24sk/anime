@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * 文言選択コンポーネント（LINEスタンプ作成ページ専用）
- * 単語／セットのタブ切り替え、プリセットのチップ表示・複数選択、
- * おすすめ8個セットを目立つ位置に配置し1クリックで申請最小構成を選択可能にする。
+ * プリセットから1ワードのみ単一選択、または自由入力で1文言を指定する。
+ * 単語／セットタブでプリセットを表示し、単語タブ内に自由入力欄を配置。
  * @remark 仕様: docs/features/ui/line-stamp.md 5.2 文言選択ブロック
  */
 
@@ -13,6 +13,9 @@ import {
   STAMP_WORDS
 } from '~~/shared/constants/line-stamp';
 import type { StampWordGroup } from '~~/shared/types/line-stamp';
+
+/** 自由入力の最大文字数（LINEスタンプの文言として妥当な長さに制限） */
+const CUSTOM_WORD_MAX_LENGTH = 20;
 
 const lineStampStore = useLineStampStore();
 
@@ -47,33 +50,25 @@ const otherSets = computed(() =>
   STAMP_SETS.filter(s => s.id !== RECOMMENDED_8_SET_ID)
 );
 
-// 選択中IDのSet（テンプレート・関数内でリアクティブに参照するため computed で包む）
-const selectedSet = computed(() => lineStampStore.selectedWordIdSet);
-
-/** 単語が選択されているか */
+/** プリセットの単語が選択されているか（単一選択） */
 function isWordSelected(wordId: string): boolean {
-  return selectedSet.value.has(wordId);
+  return lineStampStore.selectedWordId === wordId;
 }
 
-/** セット内の単語がすべて選択されているか */
-function isSetFullySelected(wordIds: readonly string[]): boolean {
-  return wordIds.length > 0 && wordIds.every(id => selectedSet.value.has(id));
-}
-
-/** 単語チップをクリックしたときの処理 */
+/** 単語チップをクリックしたときの処理（単一選択：この1件のみ選択し、自由入力をクリア） */
 function onWordClick(wordId: string) {
-  lineStampStore.toggleWord(wordId);
+  lineStampStore.setSelectedWordId(wordId);
 }
 
-/** セットをクリックしたときの処理（一括トグル） */
-function onSetClick(wordIds: readonly string[]) {
-  lineStampStore.toggleSet(wordIds);
+/** 自由入力の値を更新（プリセット選択をクリアしてこの文言を採用） */
+function onCustomWordInput(value: string) {
+  lineStampStore.setCustomWord(value.slice(0, CUSTOM_WORD_MAX_LENGTH));
 }
 
-// UTabs の items（単語 / セット）
+// UTabs の items（単語 / セット）。初期表示は単語タブ、セットは Phase 1 では非活性（仕様 5.2）
 const tabItems = [
   { label: '単語', value: 'words', slot: 'words' },
-  { label: 'セット', value: 'sets', slot: 'sets' }
+  { label: 'セット', value: 'sets', slot: 'sets', disabled: true }
 ];
 </script>
 
@@ -83,7 +78,7 @@ const tabItems = [
       id="line-stamp-preset-heading"
       class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
     >
-      文言を選択
+      テキストを1つ選択してください
     </h2>
     <UTabs
       :items="tabItems"
@@ -91,7 +86,25 @@ const tabItems = [
       variant="pill"
       class="w-full"
       :unmount-on-hide="false"
+      default-value="words"
     >
+      <!-- セットタブが準備中である旨をツールチップで案内 -->
+      <template #list-trailing>
+        <UTooltip
+          text="セットタブは現在準備中です。近日中にご利用いただけます。"
+          :content="{ side: 'bottom', sideOffset: 6 }"
+        >
+          <span
+            class="inline-flex size-6 items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            aria-label="セットタブについて"
+          >
+            <UIcon
+              name="i-lucide-info"
+              class="size-4"
+            />
+          </span>
+        </UTooltip>
+      </template>
       <template #words>
         <div class="mt-3 space-y-4">
           <div
@@ -116,12 +129,32 @@ const tabItems = [
               </UButton>
             </div>
           </div>
+
+          <!-- 自由入力（プリセット以外の文言を1件指定）。幅・高さを広めにして入力しやすくする -->
+          <div class="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400">
+              その他（自由入力）
+            </h3>
+            <UTextarea
+              :model-value="lineStampStore.customWord"
+              placeholder="例: おつかれさま"
+              :maxlength="CUSTOM_WORD_MAX_LENGTH"
+              :rows="3"
+              size="md"
+              class="w-full min-h-18 resize-y"
+              aria-label="スタンプに載せる文言を自由入力"
+              @update:model-value="onCustomWordInput"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              最大{{ CUSTOM_WORD_MAX_LENGTH }}文字まで
+            </p>
+          </div>
         </div>
       </template>
 
       <template #sets>
         <div class="mt-3 space-y-4">
-          <!-- おすすめ8個（申請用）を目立つ位置に配置 -->
+          <!-- おすすめ8個（申請用）: 各単語をチップで単一選択可能 -->
           <div
             v-if="recommendedSet"
             class="space-y-2"
@@ -129,46 +162,50 @@ const tabItems = [
             <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400">
               はじめての申請に
             </h3>
-            <UCard
-              class="cursor-pointer transition-opacity hover:opacity-90"
-              :class="
-                isSetFullySelected(recommendedSet.wordIds)
-                  ? 'ring-2 ring-primary-500'
-                  : ''
-              "
-              @click="onSetClick(recommendedSet.wordIds)"
-            >
-              <div class="flex items-center justify-between gap-2">
-                <span class="font-medium">
-                  {{ recommendedSet.name }}
-                </span>
-                <span class="text-xs text-gray-500 dark:text-gray-400">
-                  {{ recommendedSet.wordIds.length }}個
-                </span>
-              </div>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                LINE申請の最小構成を1クリックで選択
-              </p>
-            </UCard>
-          </div>
-
-          <!-- その他のセット（あいさつ・感謝・リアクション等） -->
-          <div class="space-y-2">
-            <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400">
-              カテゴリ別セット
-            </h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              {{ recommendedSet.name }}（1つ選んでください）
+            </p>
             <div class="flex flex-wrap gap-2">
               <UButton
-                v-for="set in otherSets"
-                :key="set.id"
-                :variant="isSetFullySelected(set.wordIds) ? 'solid' : 'outline'"
+                v-for="wordId in recommendedSet.wordIds"
+                :key="wordId"
+                :variant="isWordSelected(wordId) ? 'solid' : 'outline'"
                 color="primary"
                 size="sm"
                 class="rounded-full"
-                @click="onSetClick(set.wordIds)"
+                @click="onWordClick(wordId)"
               >
-                {{ set.name }}（{{ set.wordIds.length }}）
+                {{ STAMP_WORDS.find(w => w.id === wordId)?.label ?? wordId }}
               </UButton>
+            </div>
+          </div>
+
+          <!-- その他のセット: 各単語をチップで単一選択可能 -->
+          <div class="space-y-2">
+            <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400">
+              カテゴリ別
+            </h3>
+            <div
+              v-for="set in otherSets"
+              :key="set.id"
+              class="space-y-1"
+            >
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {{ set.name }}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <UButton
+                  v-for="wordId in set.wordIds"
+                  :key="wordId"
+                  :variant="isWordSelected(wordId) ? 'solid' : 'outline'"
+                  color="primary"
+                  size="sm"
+                  class="rounded-full"
+                  @click="onWordClick(wordId)"
+                >
+                  {{ STAMP_WORDS.find(w => w.id === wordId)?.label ?? wordId }}
+                </UButton>
+              </div>
             </div>
           </div>
         </div>

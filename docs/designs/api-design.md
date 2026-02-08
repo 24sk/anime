@@ -103,6 +103,34 @@
   }
   ```
 
+### ⑤ LINE スタンプ 1 枚生成
+
+変換済みアイコン画像と選択文言（プリセット word_id または custom_label）を送り、AI でスタンプ画像を 1 枚生成します。同期で結果 URL を返します。
+
+* **Endpoint:** `POST /api/line-stamp/generate`
+* **Auth:** 不要（`anon_session_id` を使用）
+* **Request Body:**
+
+  ```json
+  {
+    "anon_session_id": "string (UUID)",
+    "image_url": "string (元アイコン画像の URL)",
+    "word_id": "string (optional, プリセット単語 ID)",
+    "custom_label": "string (optional, 自由入力文言・最大20文字)"
+  }
+  ```
+  * `word_id` と `custom_label` のどちらか一方のみ指定。プリセット利用時は `word_id`、自由入力時は `custom_label`。
+
+* **Response (200 OK):**
+
+  ```json
+  {
+    "result_image_url": "string (Vercel Blob の URL)"
+  }
+  ```
+
+* **Error:** 429（レート制限）、422（コンテンツポリシー）、500（AI エラー時はユーザー向けメッセージを返す）
+
 ## 3. 内部処理シーケンス
 
 ```mermaid

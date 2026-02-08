@@ -43,3 +43,19 @@ export function getImageGenerationPrompt(
 
   return `${stylePrompt} Subject: ${petDescription}`;
 }
+
+/**
+ * LINE スタンプ用の画像生成プロンプトを生成する
+ * 元画像のペットをスタンプ風にし、指定文言を大きく表示する
+ * @param {string} label - スタンプに載せる文言（例: おはよう、ありがとう）
+ * @param {string} petDescription - ペットの特徴説明（画像解析結果）
+ * @returns {string} 画像生成用プロンプト（英語）
+ */
+export function getLineStampGenerationPrompt(label: string, petDescription: string): string {
+  return `Create a single LINE sticker image. Style: Cute, simple illustration suitable for LINE stamps. 
+Subject: ${petDescription}
+The sticker must prominently display the following text in large, readable letters: "${label}".
+Layout: The pet character and the text should fit together in one square or horizontal rectangle (sticker format). 
+Background: White or simple solid color. No complex scenery.
+Output: One image that looks like an official LINE sticker, with the text clearly visible and the pet character in a cute pose.`;
+}
