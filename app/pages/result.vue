@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAnonSession } from '~/composables/useAnonSession'
+
 const generationStore = useGenerationStore()
 const router = useRouter()
 const toast = useToast()
@@ -25,7 +26,7 @@ async function downloadImage() {
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-    
+
     toast.add({
       title: 'ダウンロード完了',
       description: '画像を保存しました',
@@ -48,7 +49,7 @@ function shareOnTwitter() {
   const text = encodeURIComponent('うちのペットがアニメキャラになったよ！\n\n')
   const hashtags = encodeURIComponent('AniMe,AI画像生成,ペット')
   const url = encodeURIComponent(window.location.origin) // 本番環境のURLに置き換えるべき
-  
+
   window.open(
     `https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`,
     '_blank'
@@ -118,11 +119,14 @@ onMounted(() => {
           width="512"
           height="512"
         />
-        <div 
-          v-else 
+        <div
+          v-else
           class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400"
         >
-          <UIcon name="i-heroicons-photo" class="w-12 h-12" />
+          <UIcon
+            name="i-heroicons-photo"
+            class="w-12 h-12"
+          />
         </div>
       </UAspectRatio>
     </UCard>
@@ -151,7 +155,7 @@ onMounted(() => {
           class="rounded-3xl !bg-black !text-white hover:!bg-gray-800"
           @click="shareOnTwitter"
         >
-         Post
+          Post
         </UButton>
       </div>
 

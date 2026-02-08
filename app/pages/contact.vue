@@ -30,7 +30,10 @@ useSeoMeta({
         class="text-primary font-medium hover:underline inline-flex items-center gap-2"
         rel="noopener noreferrer"
       >
-        <UIcon name="i-lucide-mail" class="size-5" />
+        <UIcon
+          name="i-lucide-mail"
+          class="size-5"
+        />
         {{ contactEmail }}
       </a>
     </p>

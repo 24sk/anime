@@ -126,7 +126,11 @@ export default defineNuxtConfig({
     config: {
       stylistic: {
         commaDangle: 'never',
-        braceStyle: '1tbs'
+        braceStyle: '1tbs',
+        // セミコロンを付与する
+        semi: true,
+        // シングルクォーテーションを使用する
+        quotes: 'single'
       }
     }
   },
