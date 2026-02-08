@@ -1,3 +1,3 @@
 {
-  "installCommand": "node scripts/vercel-pre-install.mjs && pnpm install"
+  "installCommand": "node scripts/vercel-pre-install.mjs && pnpm install --no-frozen-lockfile"
 }
