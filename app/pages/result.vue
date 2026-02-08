@@ -3,7 +3,13 @@ import { useAnonSession } from '~/composables/useAnonSession';
 
 const generationStore = useGenerationStore();
 const router = useRouter();
+const route = useRoute();
 const toast = useToast();
+
+/** 開発時のみ: 画面表示確認用プレビューモード（?preview=1 でリダイレクトせず表示、画像なし時はサンプル表示） */
+const isPreviewMode
+  = import.meta.dev
+    && route.query.preview === '1';
 
 /** トップへ戻る（もう一度作る） */
 function goHome() {
@@ -92,9 +98,42 @@ async function sendFeedback(type: 'good' | 'bad') {
   }
 }
 
+/**
+ * 結果画面ではブラウザバック・戻るを無効にする
+ * ただし AniMe ロゴクリック（トップへ）は許可。「もう一度作る」は goHome() で reset 後に遷移
+ */
+onBeforeRouteLeave((to, _from, next) => {
+  if (generationStore.status === 'completed' && to.path !== '/') {
+    toast.add({
+      title: '「もう一度作る」からトップへ戻れます',
+      color: 'warning'
+    });
+    next(false);
+    return;
+  }
+  next();
+});
+
 onMounted(() => {
+  // 開発時プレビューモード: ?preview=1 でリダイレクトせず、画像がなければサンプルを表示
+  if (isPreviewMode) {
+    if (!generationStore.resultImageUrl) {
+      const customImage = route.query.image;
+      const sampleUrl = typeof customImage === 'string' && customImage
+        ? customImage.startsWith('/') ? customImage : `/${customImage}`
+        : '/images/sample.jpg';
+      generationStore.setResultImageUrl(sampleUrl);
+    }
+    if (!generationStore.jobId) {
+      generationStore.setJobId('00000000-0000-0000-0000-000000000000');
+    }
+    if (generationStore.status !== 'completed') {
+      generationStore.setStatus('completed');
+    }
+    return;
+  }
+
   if (!generationStore.jobId || generationStore.status !== 'completed') {
-    // 開発時のプレビュー用：jobIdがなくても画像があれば表示（デバッグ用）
     if (!generationStore.resultImageUrl) {
       router.replace('/');
     }
@@ -104,13 +143,20 @@ onMounted(() => {
 
 <template>
   <div class="py-8 max-w-md mx-auto px-4">
+    <!-- 開発時プレビューモードであることを示すラベル（デバッグ用） -->
+    <p
+      v-if="isPreviewMode"
+      class="mb-2 text-center text-xs text-amber-600 dark:text-amber-400"
+    >
+      [プレビュー] /result?preview=1 または ?preview=1&image=/path で表示
+    </p>
     <h1 class="text-2xl font-bold text-center mb-8 text-primary-500">
       完成しました！
     </h1>
 
-    <!-- メイン画像 -->
+    <!-- メイン画像（1:1アスペクト比はTailwindのaspect-squareで維持） -->
     <UCard class="overflow-hidden ring-4 ring-primary-100 dark:ring-primary-900 border-0 shadow-xl">
-      <UAspectRatio :ratio="1 / 1">
+      <div class="aspect-square w-full">
         <NuxtImg
           v-if="generationStore.resultImageUrl"
           :src="generationStore.resultImageUrl"
@@ -128,7 +174,7 @@ onMounted(() => {
             class="w-12 h-12"
           />
         </div>
-      </UAspectRatio>
+      </div>
     </UCard>
 
     <!-- アクションボタン -->

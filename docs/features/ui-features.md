@@ -88,7 +88,7 @@
 
 - [ ] **メイン画像表示**
   - 生成された画像を大きく表示
-  - `UAspectRatio` で比率を維持
+  - Tailwind の `aspect-square` で 1:1 比率を維持
   - Vercel Blobから取得した生成完了画像を表示
 - [ ] **アクションボタンの実装**
   - **ダウンロードボタン (`UButton`)**: 広告視聴フラグを確認して有効化。クリックで端末へ保存
@@ -173,7 +173,7 @@
 
 - [ ] **メインプレビューエリア**
   - Vercel Blobから取得した生成完了画像を表示
-  - 使用コンポーネント: `UAspectRatio`、`NuxtImg` (画像最適化)
+  - 使用: Tailwind `aspect-square`（1:1比率）、`NuxtImg`（画像最適化）
 - [ ] **SNSアイコンシミュレーター（Toggle式）**
   - 「円形マスク」をON/OFFできる切り替えスイッチ
   - 実際のXやInstagramのプロフィール画面を模したモックアップ表示
@@ -257,7 +257,7 @@
 | **通知/ガイド** | `UNotifications`、nuxt-driver.js（`useDriver()`）、`UTooltip` | トースト通知、使い方ガイド（要素ハイライトツアー）、ツールチップ |
 | **アイコン** | `UIcon` (Iconify 連携) | 各種アイコン表示（@iconify-json/lucide を使用） |
 | **画像** | `NuxtImg` (via @nuxt/image) | 画像の最適化と表示 |
-| **アスペクト比** | `UAspectRatio` | 画像のアスペクト比維持 |
+| **アスペクト比** | Tailwind `aspect-square` | 画像の 1:1 アスペクト比維持 |
 | **カラーモード** | `UColorModeButton` | ダークモード切り替え |
 
 ### コンポーネント詳細
@@ -286,7 +286,7 @@
 
 - **UProgress**: 生成進捗のプログレスバー
 - **UIcon**: Iconify 連携によるアイコン表示
-- **UAspectRatio**: 画像のアスペクト比を維持
+- **Tailwind aspect-square**: 画像の 1:1 アスペクト比を維持（CSS aspect-ratio）
 - **NuxtImg**: 画像の最適化と遅延読み込み
 
 #### 通知系
