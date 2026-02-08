@@ -61,11 +61,25 @@ CREATE INDEX idx_jobs_session_id ON generation_jobs(anon_session_id);
 -- 4. RLSの有効化
 ALTER TABLE generation_jobs ENABLE ROW LEVEL SECURITY;
 
--- 5. セキュリティポリシー定義
+-- 5. セッションID取得ヘルパー（RLS initPlan 最適化・リント対応）
+-- ポリシー内で current_setting() を直接書くと行ごとに再評価され警告になるため、
+-- private スキーマのヘルパーを (select 関数) で呼び出し1回だけ評価する
+CREATE SCHEMA IF NOT EXISTS private;
+CREATE OR REPLACE FUNCTION private.request_anon_session_id()
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT current_setting('request.headers', true)::json->>'x-anon-session-id';
+$$;
+
+-- 6. セキュリティポリシー定義
 -- 参照: ヘッダーに付与された session_id と一致するレコードのみ参照可能
 CREATE POLICY "Users can view their own jobs" 
 ON generation_jobs FOR SELECT 
-USING (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id');
+USING (anon_session_id::text = (select private.request_anon_session_id()));
 
 -- INSERT: ポリシーなし。anon では INSERT 不可。ジョブ作成はバックエンド（service_role）のみが実行する。
 -- レート制限・バリデーションは API 層で実施。
@@ -73,10 +87,10 @@ USING (anon_session_id::text = current_setting('request.headers')::json->>'x-ano
 -- 更新: 自分のセッションに紐づく行のみ更新可能。WITH CHECK で更新後の行も同一セッションに限定（anon_session_id の書き換えを防止）
 CREATE POLICY "Users can update their own job status" 
 ON generation_jobs FOR UPDATE 
-USING (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id')
-WITH CHECK (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id');
+USING (anon_session_id::text = (select private.request_anon_session_id()))
+WITH CHECK (anon_session_id::text = (select private.request_anon_session_id()));
 
--- 6. レートリミット管理用テーブル
+-- 7. レートリミット管理用テーブル
 CREATE TABLE IF NOT EXISTS rate_limits (
     ip_hash TEXT PRIMARY KEY,
     request_count INTEGER DEFAULT 1,
@@ -92,7 +106,22 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 **UPDATE ポリシーの明示的 WITH CHECK**  
 `"Users can update their own jobs"` / `"Users can update their own job status"` に明示的な WITH CHECK を付与し、スキャナの「常に true」検知を解消しつつ、更新後の行も同一セッションに限定する。
 
+**パフォーマンス最適化（RLS initPlan）**  
+ポリシー内で `current_setting()` を直接使うと行ごとに再評価され、Supabase のパフォーマンスアドバイザーで警告される。`private.request_anon_session_id()` を定義し、ポリシーでは `(select private.request_anon_session_id())` のみを参照すること。
+
 ```sql
+-- ヘルパー関数（未作成時のみ）
+CREATE SCHEMA IF NOT EXISTS private;
+CREATE OR REPLACE FUNCTION private.request_anon_session_id()
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT current_setting('request.headers', true)::json->>'x-anon-session-id';
+$$;
+
 -- INSERT: 過剰に許可されていたポリシーを削除
 DROP POLICY IF EXISTS "Anyone can create jobs" ON generation_jobs;
 
@@ -100,11 +129,16 @@ DROP POLICY IF EXISTS "Anyone can create jobs" ON generation_jobs;
 DROP POLICY IF EXISTS "Users can update their own jobs" ON generation_jobs;
 DROP POLICY IF EXISTS "Users can update their own job status" ON generation_jobs;
 
--- UPDATE: USING と WITH CHECK を明示したポリシーを再作成
+-- SELECT / UPDATE: ヘルパーを (select ...) で参照し initPlan で1回だけ評価
+DROP POLICY IF EXISTS "Users can view their own jobs" ON generation_jobs;
+CREATE POLICY "Users can view their own jobs" 
+ON generation_jobs FOR SELECT 
+USING (anon_session_id::text = (select private.request_anon_session_id()));
+
 CREATE POLICY "Users can update their own job status" 
 ON generation_jobs FOR UPDATE 
-USING (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id')
-WITH CHECK (anon_session_id::text = current_setting('request.headers')::json->>'x-anon-session-id');
+USING (anon_session_id::text = (select private.request_anon_session_id()))
+WITH CHECK (anon_session_id::text = (select private.request_anon_session_id()));
 ```
 
 ## 4. ストレージ設計 (Vercel Blob)

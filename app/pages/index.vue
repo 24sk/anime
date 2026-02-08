@@ -14,35 +14,30 @@ const canGenerate = computed(() => {
 
 /**
  * 画像をVercel Blobにアップロードする
+ * サーバーにバイナリを送信し、返却されたBlobのurlをアクセス用URLとして返す
  * @param {File} imageFile - アップロードする画像ファイル
  * @returns {Promise<string>} アップロードされた画像のURL
  */
 const uploadImageToBlob = async (imageFile: File): Promise<string> => {
   const contentType = imageFile.type || 'image/jpeg'
 
-  // 1. サーバーから署名付きURLを取得
-  const { uploadUrl, accessUrl } = await $fetch<{ uploadUrl: string, accessUrl: string }>('/api/upload/presign', {
-    method: 'POST',
-    body: {
-      filename: imageFile.name,
-      contentType
-    }
-  })
-
-  // 2. Fileオブジェクトをバイナリ(ArrayBuffer)に変換
-  // これを行わないと、$fetchがFileをJSONオブジェクトとしてシリアライズしてしまいます
+  // FileをArrayBufferに変換（$fetchがFileをJSON化しないようにする）
   const arrayBuffer = await imageFile.arrayBuffer()
 
-  // 3. 取得したURLにバイナリデータをPUT送信
-  await $fetch(uploadUrl, {
-    method: 'PUT',
-    body: arrayBuffer, // バイナリデータを直接渡す
+  // サーバーにバイナリを送信。presign APIは受け取ったbodyをそのままBlobにputし、{ url, pathname, ... } を返す
+  const blob = await $fetch<{ url: string }>('/api/upload/presign', {
+    method: 'POST',
+    query: { filename: imageFile.name || 'image.png' },
+    body: arrayBuffer,
     headers: {
-      'Content-Type': contentType // ここで正しいMIMEタイプを指定
+      'Content-Type': contentType
     }
   })
 
-  return accessUrl
+  if (!blob?.url) {
+    throw new Error('アップロード後のURLを取得できませんでした')
+  }
+  return blob.url
 }
 
 /**
@@ -95,7 +90,6 @@ const handleGenerate = async () => {
 
     // 画像をVercel Blobにアップロード
     const sourceImageUrl = await uploadImageToBlob(generationStore.imageFile)
-    console.log('sourceImageUrl', sourceImageUrl)
 
     // 画像生成APIを呼び出し
     const { job_id } = await callGenerateAPI(anonSessionId, sourceImageUrl, generationStore.selectedStyle)

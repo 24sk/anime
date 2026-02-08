@@ -9,15 +9,13 @@ import type { Database } from '~~/shared/types/database.types'
  */
 export function getSupabaseClient() {
   const config = useRuntimeConfig()
-
-  const { public: { supabaseUrl, supabaseServiceRoleKey } } = config
+  // supabaseUrl は public、supabaseServiceRoleKey はサーバー専用（runtimeConfig 直下）
+  const supabaseUrl = config.public.supabaseUrl as string
+  const supabaseServiceRoleKey = config.supabaseServiceRoleKey as string
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     throw new Error('Supabaseの環境変数が設定されていません')
   }
 
-  return createClient<Database>(
-    supabaseUrl as string,
-    supabaseServiceRoleKey as string
-  )
+  return createClient<Database>(supabaseUrl, supabaseServiceRoleKey)
 }

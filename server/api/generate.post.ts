@@ -170,7 +170,8 @@ export default defineEventHandler(async (event: H3Event) => {
       throw error
     }
 
-    // 予期しないエラー
+    // 予期しないエラー：原因特定のためサーバーログに記録（機密情報は含めない）
+    console.error('[generate] Unexpected error:', error instanceof Error ? error.message : String(error))
     throw createErrorResponse(500, ErrorCodes.INTERNAL_SERVER_ERROR, ERROR_MESSAGES[ErrorCodes.INTERNAL_SERVER_ERROR])
   }
 })
