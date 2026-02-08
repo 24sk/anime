@@ -107,8 +107,16 @@ export default defineEventHandler(async (event: H3Event) => {
           const petDescription = await analyzePetImage(validatedData.source_image_url)
           // プロンプト生成: スタイルタイプとペットの特徴から画像生成用プロンプトを生成
           const prompt = getImageGenerationPrompt(validatedData.style_type as typeof styleTypes[number], petDescription)
-          // 画像生成: Imagen 3を使用して画像を生成
-          const generatedImage = await generateImageWithImagen(validatedData.source_image_url, prompt)
+
+          // モデル選択
+          // 3Dアニメの場合は Imagen 4 を使用、それ以外は Gemini 2.5 Flash Image を使用
+          let modelName = 'gemini-2.5-flash-image'
+          if (validatedData.style_type === '3d-anime') {
+            modelName = 'imagen-4.0-generate-001'
+          }
+
+          // 画像生成
+          const generatedImage = await generateImageWithImagen(validatedData.source_image_url, prompt, modelName)
 
           // 生成画像をVercel Blobにアップロード
           const { url: resultUrl } = await uploadImageToBlob({

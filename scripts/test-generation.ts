@@ -1,3 +1,4 @@
+import { createInterface } from 'node:readline'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { config } from 'dotenv'
 import fs from 'node:fs'
@@ -9,9 +10,9 @@ config()
 // Mock Nuxt runtime config and utilities
 const mockRuntimeConfig = {
     geminiApiKey: process.env.GEMINI_API_KEY || process.env.NUXT_GEMINI_API_KEY
-}
+};
 
-global.useRuntimeConfig = () => mockRuntimeConfig as any
+(global as any).useRuntimeConfig = () => mockRuntimeConfig as any
 
 // Define styles (copied from shared/types/style.ts to avoid alias issues)
 const styleTypes = [
@@ -25,7 +26,15 @@ const styleTypes = [
 
 type StyleType = typeof styleTypes[number]
 
+
 // --- Copied & Adapted Logic from server/utils/prompts.ts ---
+
+const MODEL_OPTIONS = [
+    { name: 'Gemini 2.5 Flash Image', id: 'gemini-2.5-flash-image' },
+    { name: 'Gemini 3 Pro Image', id: 'gemini-3-pro-image-preview' }, // Assuming potential ID, likely to fail if not available
+    { name: 'Imagen 4', id: 'imagen-4.0-generate-001' } // Assuming potential ID per user request
+] as const
+
 
 function getPetAnalysisPrompt(): string {
     return `
@@ -52,7 +61,7 @@ function getImageGenerationPrompt(
         'fluffy': 'Cute hand-drawn illustration, fluffy texture, soft lines, pastel colors, warm and cozy vibes, storybook style, adorable.',
         'cyberpunk': 'Cyberpunk pet icon, neon lights, futuristic accessories, vibrant glowing colors, high contrast, sci-fi aesthetic, cool.',
         'korean-style': 'Modern Korean-style pet icon, flat design, vibrant soft colors, simple but cute, charms, stickers, app icon style.',
-        'simple-illustration': 'Simple minimalist pet icon, clean lines, flat color, vector art, white background, modern, logo style.'
+        'simple-illustration': 'Simple minimalist pet icon, clean lines, flat color, vector art, white background, modern, logo style, kawaii, cute chibi style, round sparkling eyes.'
     }
 
     const stylePrompt = stylePrompts[styleType] || stylePrompts[styleTypes[styleTypes.length - 1]]
@@ -90,17 +99,70 @@ async function analyzePetImage(imagePath: string): Promise<string> {
 
 async function generateImageWithImagen(
     sourceImagePath: string,
-    prompt: string
+    prompt: string,
+    modelName: string
 ): Promise<Buffer> {
+    if (!mockRuntimeConfig.geminiApiKey) {
+        throw new Error('GEMINI_API_KEY is not set')
+    }
+
+    // --- Imagen Models: Use REST API (predict) ---
+    if (modelName.includes('imagen')) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${mockRuntimeConfig.geminiApiKey}`
+
+        const requestBody = {
+            instances: [
+                {
+                    prompt: prompt
+                }
+            ],
+            parameters: {
+                sampleCount: 1
+            }
+        }
+
+        console.log(`Generating image with model: ${modelName} via REST API (predict)`)
+        console.log('Prompt:', prompt)
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        })
+
+        if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(`Imagen API Error: ${response.status} ${response.statusText} - ${errorText}`)
+        }
+
+        const data = await response.json() as any
+        const base64Image = data.predictions?.[0]?.bytesBase64Encoded
+
+        if (!base64Image) {
+            if (data.predictions?.[0]?.mimeType && data.predictions?.[0]?.bytesBase64Encoded) {
+                return Buffer.from(data.predictions[0].bytesBase64Encoded, 'base64')
+            }
+            console.error('API Response for debugging:', JSON.stringify(data, null, 2))
+            throw new Error('No image returned from Imagen API')
+        }
+
+        return Buffer.from(base64Image, 'base64')
+    }
+
+    // --- Gemini Models: Use SDK (generateContent) ---
+    console.log(`Generating image with model: ${modelName} via SDK (generateContent)`)
+    console.log('Prompt:', prompt)
+
     const genAI = getGeminiClient()
     const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash-image',
+        model: modelName,
         generationConfig: {
-            responseModalities: ['TEXT', 'IMAGE']
+            // Note: Some models support responseModalities configuration
+            // responseModalities: ['TEXT', 'IMAGE'] 
         } as any
     })
-
-    console.log('Generating image with prompt:', prompt)
 
     const imageBuffer = fs.readFileSync(sourceImagePath)
     const imageData = {
@@ -111,11 +173,16 @@ async function generateImageWithImagen(
     }
 
     try {
+        // Attempt to call generateContent with prompt & (optionally) image
+        // WARNING: Image input to generateContent for image GENERATION depends on model support (e.g. Image-to-Image editing)
+        // If the model does not support multimodal input for generation, this might fail or produce text describing the image.
         const result = await model.generateContent([prompt, imageData])
         const response = await result.response
 
+        // Extract image parts
         const parts = response.candidates?.[0]?.content?.parts ?? []
         let imageBytes: string | undefined
+        // Check for inlineData (image generation typically returns this)
         for (const part of parts) {
             if (part.inlineData?.data) {
                 imageBytes = part.inlineData.data
@@ -124,6 +191,12 @@ async function generateImageWithImagen(
         }
 
         if (!imageBytes) {
+            // Check if response contains just text (e.g. refusal or description)
+            const textPart = response.text()
+            if (textPart) {
+                console.warn('Model returned text instead of image:', textPart)
+                throw new Error(`Model returned text: "${textPart.substring(0, 100)}..."`)
+            }
             throw new Error('Image generation failed: No image data returned.')
         }
 
@@ -132,6 +205,24 @@ async function generateImageWithImagen(
         console.error('Image Generation Error:', error)
         throw error
     }
+}
+
+// ... existing imports ...
+
+// --- Helper for User Input ---
+
+function askQuestion(query: string): Promise<string> {
+    const rl = createInterface({
+        input: process.stdin,
+        output: process.stdout
+    })
+
+    return new Promise((resolve) => {
+        rl.question(query, (answer) => {
+            rl.close()
+            resolve(answer)
+        })
+    })
 }
 
 // --- Main Execution ---
@@ -150,6 +241,44 @@ async function main() {
     }
 
     try {
+        // 0. Select Model
+        console.log('\n--- Select Model ---')
+        MODEL_OPTIONS.forEach((model, index) => {
+            console.log(`${index + 1}. ${model.name}`)
+        })
+        const modelAnswer = await askQuestion('\nSelect a model (enter number, default 1): ')
+        const modelIndex = parseInt(modelAnswer, 10) - 1
+        const selectedModel = (modelIndex >= 0 && modelIndex < MODEL_OPTIONS.length)
+            ? MODEL_OPTIONS[modelIndex]
+            : MODEL_OPTIONS[0]
+
+        console.log(`\nSelected Model: ${selectedModel.name} (${selectedModel.id})`)
+
+        // 1. Select Style
+        console.log('\n--- Select Style ---')
+        styleTypes.forEach((style, index) => {
+            console.log(`${index + 1}. ${style}`)
+        })
+        console.log('a. All styles')
+
+        const answer = await askQuestion('\nSelect a style (enter number or "a"): ')
+
+        let selectedStyles: StyleType[] = []
+
+        if (answer.toLowerCase() === 'a') {
+            selectedStyles = [...styleTypes]
+        } else {
+            const index = parseInt(answer, 10) - 1
+            if (index >= 0 && index < styleTypes.length) {
+                selectedStyles = [styleTypes[index]]
+            } else {
+                console.log('Invalid selection, defaulting to ALL styles.')
+                selectedStyles = [...styleTypes]
+            }
+        }
+
+        console.log(`\nSelected styles: ${selectedStyles.join(', ')}\n`)
+
         // 1. Analyze
         const description = await analyzePetImage(sourceImage)
         console.log('\n--- Pet Analysis Result ---')
@@ -157,13 +286,13 @@ async function main() {
         console.log('---------------------------\n')
 
         // 2. Generate for each style
-        for (const style of styleTypes) {
+        for (const style of selectedStyles) {
             console.log(`\nProcessing style: ${style}`)
             const prompt = getImageGenerationPrompt(style, description)
 
             try {
-                const imageBuffer = await generateImageWithImagen(sourceImage, prompt)
-                const outputPath = path.join(outputDir, `result_${style}.png`)
+                const imageBuffer = await generateImageWithImagen(sourceImage, prompt, selectedModel.id)
+                const outputPath = path.join(outputDir, `result_${selectedModel.id}_${style}.png`)
                 fs.writeFileSync(outputPath, imageBuffer)
                 console.log(`Saved: ${outputPath}`)
             } catch (e) {
