@@ -40,7 +40,7 @@ export function getImageGenerationPrompt(
   }
 
   // styleTypeが有効な値でない場合は、デフォルトのsimple-illustrationを使用
-  const stylePrompt = stylePrompts[styleType] || stylePrompts[styleTypes[styleTypes.length - 1]]
+  const stylePrompt = stylePrompts[styleType] || stylePrompts['simple-illustration']
 
   return `${stylePrompt} Subject: ${petDescription}`
 }

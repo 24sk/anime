@@ -28,7 +28,7 @@ function getClientIP(event: H3Event): string {
   const forwardedFor = getHeader(event, 'x-forwarded-for')
   if (forwardedFor) {
     // 複数のIPが含まれる場合は最初のIPを使用
-    return forwardedFor.split(',')[0].trim()
+    return forwardedFor?.split(',')[0]?.trim() || 'unknown'
   }
 
   // X-Real-IPヘッダーから取得
@@ -71,10 +71,10 @@ export async function checkRateLimit(
   const query = supabase
     .from('rate_limits')
     .select('ip_hash, request_count, last_request_at') as unknown as {
-    eq: (column: string, value: string) => {
-      maybeSingle: () => Promise<{ data: RateLimitRow | null, error: { code?: string } | null }>
+      eq: (column: string, value: string) => {
+        maybeSingle: () => Promise<{ data: RateLimitRow | null, error: { code?: string } | null }>
+      }
     }
-  }
   const { data: rateLimitData, error: selectError } = await query
     .eq('ip_hash', ipHash)
     .maybeSingle()

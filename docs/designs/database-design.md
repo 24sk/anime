@@ -25,15 +25,19 @@ AI生成の進捗、結果URL、および広告視聴状況を管理する基幹
 | `created_at` | Timestamptz | Default: now() | 生成リクエスト日時 |
 | `completed_at` | Timestamptz | | 生成処理の完了日時 |
 
-### ② `rate_limits` (利用制限管理)
+### ③ `feedbacks` (フィードバック管理)
 
-APIコスト保護のため、IPアドレス単位でのリクエスト回数を管理します。
+生成結果に対するユーザーの評価（良・悪）を保存するテーブル。今後の品質改善に活用します。
 
 | カラム名 | 型 | 制約 | 説明 |
 | :--- | :--- | :--- | :--- |
-| `ip_hash` | Text | PK | ユーザーIPをハッシュ化したもの |
-| `request_count` | Integer | Default: 1 | 指定期間内の累計リクエスト数 |
-| `last_request_at` | Timestamptz | Default: now() | 最終リクエスト日時 |
+| `id` | UUID | PK, Default: gen_random_uuid() | フィードバックの一意識別子 |
+| `job_id` | UUID | FK -> generation_jobs(id) | 対象の生成ジョブID |
+| `anon_session_id` | UUID | Not Null | 投稿者の匿名セッションID |
+| `selected_style` | Text | | ユーザーが選択したスタイル |
+| `free_text` | Text | | ユーザーが入力したフリーテキスト |
+| `feedback_type` | Text | Check ('good', 'bad') | 評価タイプ |
+| `created_at` | Timestamptz | Default: now() | 投稿日時 |
 
 ## 3. 初期構築用SQLスクリプト (Supabase/MCP用)
 
@@ -55,11 +59,24 @@ CREATE TABLE IF NOT EXISTS generation_jobs (
     completed_at TIMESTAMPTZ
 );
 
+CREATE TABLE IF NOT EXISTS feedbacks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID REFERENCES generation_jobs(id) ON DELETE SET NULL,
+    anon_session_id UUID NOT NULL,
+    selected_style TEXT,
+    free_text TEXT,
+    feedback_type TEXT NOT NULL CHECK (feedback_type IN ('good', 'bad')),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- 3. インデックス作成
 CREATE INDEX idx_jobs_session_id ON generation_jobs(anon_session_id);
+CREATE INDEX idx_feedbacks_session_id ON feedbacks(anon_session_id);
+CREATE INDEX idx_feedbacks_job_id ON feedbacks(job_id);
 
 -- 4. RLSの有効化
 ALTER TABLE generation_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
 
 -- 5. セッションID取得ヘルパー（RLS initPlan 最適化・リント対応）
 -- ポリシー内で current_setting() を直接書くと行ごとに再評価され警告になるため、
@@ -75,7 +92,7 @@ AS $$
   SELECT current_setting('request.headers', true)::json->>'x-anon-session-id';
 $$;
 
--- 6. セキュリティポリシー定義
+-- 6. セキュリティポリシー定義 (generation_jobs)
 -- 参照: ヘッダーに付与された session_id と一致するレコードのみ参照可能
 CREATE POLICY "Users can view their own jobs" 
 ON generation_jobs FOR SELECT 
@@ -90,7 +107,18 @@ ON generation_jobs FOR UPDATE
 USING (anon_session_id::text = (select private.request_anon_session_id()))
 WITH CHECK (anon_session_id::text = (select private.request_anon_session_id()));
 
--- 7. レートリミット管理用テーブル
+-- 7. セキュリティポリシー定義 (feedbacks)
+-- INSERT: 自分のセッションIDでのみ投稿可能
+CREATE POLICY "Users can create feedback" 
+ON feedbacks FOR INSERT 
+WITH CHECK (anon_session_id::text = (select private.request_anon_session_id()));
+
+-- SELECT: 自分の投稿のみ参照可能（必要であれば）
+CREATE POLICY "Users can view their own feedback" 
+ON feedbacks FOR SELECT 
+USING (anon_session_id::text = (select private.request_anon_session_id()));
+
+-- 8. レートリミット管理用テーブル
 CREATE TABLE IF NOT EXISTS rate_limits (
     ip_hash TEXT PRIMARY KEY,
     request_count INTEGER DEFAULT 1,
@@ -199,7 +227,7 @@ COMMIT;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.generation_jobs;
 ```
 
-3. 実行後、フロントの `postgres_changes` 購読で `generation_jobs` の UPDATE が届くようになります。
+1. 実行後、フロントの `postgres_changes` 購読で `generation_jobs` の UPDATE が届くようになります。
 
 ### 参考
 
