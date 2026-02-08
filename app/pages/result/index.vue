@@ -205,6 +205,23 @@ onMounted(() => {
         </UButton>
       </div>
 
+      <!-- LINEスタンプ作成機能への入口。LINEブランドカラーでユーザーに分かりやすく（仕様: docs/features/ui/line-stamp.md） -->
+      <NuxtLink
+        to="/result/line-stamp"
+        class="block"
+      >
+        <UButton
+          size="lg"
+          block
+          color="neutral"
+          variant="solid"
+          icon="i-simple-icons-line"
+          class="rounded-3xl w-full bg-[#06C755]! text-white! hover:bg-[#05a84a]!"
+        >
+          LINEスタンプ用に作る
+        </UButton>
+      </NuxtLink>
+
       <UButton
         size="lg"
         block

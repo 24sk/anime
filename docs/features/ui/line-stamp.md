@@ -11,15 +11,15 @@
 
 ## 実装タスク一覧
 
-- [ ] **結果画面への入口**
+- [x] **結果画面への入口**
   - 結果画面（`/result`）のアクションボタン領域に「LINEスタンプ用に作る」ボタンを 1 つ追加
   - 配置: 「保存」「Post」の下、または「もう一度作る」の上/下。既存の `UButton`・`rounded-3xl` 等に合わせる
   - クリックで `/result/line-stamp` へ遷移（`NuxtLink` または `navigateTo`）
-- [ ] **LINEスタンプ作成ページの新設**
+- [x] **LINEスタンプ作成ページの新設**
   - ルート: `/result/line-stamp`。レイアウトはモバイルファースト 1 カラム、既存の `max-w-md` 等に合わせる
-  - ヘッダー: 「戻る」リンク（結果画面へ）、タイトル「LINEスタンプ用に書き出し」
-  - 元画像なし（`resultImageUrl` 未設定）で直接アクセスされた場合は結果画面またはトップへリダイレクト
-- [ ] **プリセットデータ・型定義**
+  - ヘッダー: タイトル「LINEスタンプ用に書き出し」（戻るボタンはなし）
+  - 元画像なし（`resultImageUrl` 未設定）で直接アクセスされた場合は結果画面へリダイレクト
+- [x] **プリセットデータ・型定義**
   - `StampWord`（id, label, group）・`StampSet`（id, name, wordIds, type）・`StampCategory`（id, name, setIds）の型定義
   - 単語プリセット定数: あいさつ・感謝・リアクション・応援・愛情・ごめん・フォロー（仕様 3.2.1 の初期実装分）
   - セット定数: あいさつ・感謝・リアクション・愛情・フォロー・応援、および **おすすめ8個（申請用）**（仕様 3.2.2）
@@ -49,7 +49,7 @@
   - ページ専用: `components/pages/line-stamp/`（例: `StampPresetSelector.vue`, `StampPreviewGrid.vue`）
   - 共通コンポーネントは既存 `common/` を流用し、新規は必要最小限
 - [ ] **申請注記・FAQ（A + C 確定）**
-  - LINEスタンプ作成ページ（`/result/line-stamp`）に「LINEクリエイターズマーケットへの申請はご自身でお願いします」を表示（ヘッダー直下 or CTA 上）。必要に応じて LINE Creators Market へのリンクを併記
+  - LINEスタンプ作成ページ（`/result/line-stamp`）に「LINEクリエイターズマーケットへの申請はご自身でお願いします」を表示（ヘッダー直下 or CTA 上）。必要に応じて LINE Creators Market へのリンクを併記 → **注記は実装済み**
   - FAQ（`/faq`）に「LINEスタンプの申請はどこでしますか？」を追加し、申請はユーザー自身が LINE Creators Market で行う旨とリンクで案内
 
 ※ カテゴリ表示（セットのグループ化）・仕事用・季節プリセットは Phase 2 で追加予定。
@@ -58,21 +58,21 @@
 
 ## 5.1 結果画面の変更（入口）
 
-- [ ] **「LINEスタンプ用に作る」ボタン**
+- [x] **「LINEスタンプ用に作る」ボタン**
   - アクションボタン領域に 1 つ追加。配置は「保存」「Post」の下、または「もう一度作る」の上/下
   - `UButton` を使用し、既存の `result.vue` のスタイル（`rounded-3xl` 等）に合わせる
   - クリックで `/result/line-stamp` へ遷移
 
 ## 5.2 LINEスタンプ作成ページ（`/result/line-stamp`）
 
-- [ ] **ページ骨格・ガード**
+- [x] **ページ骨格・ガード**
   - ルート: `/result/line-stamp`。モバイルファースト 1 カラム、`max-w-md` 等で最大幅を既存に合わせる
-  - ヘッダー: 「戻る」リンク（結果画面へ）、タイトル「LINEスタンプ用に書き出し」
-  - `generationStore.resultImageUrl` が無い場合は結果画面またはトップへリダイレクト
-- [ ] **申請注記の表示**（5.6 確定仕様）
+  - ヘッダー: タイトル「LINEスタンプ用に書き出し」（戻るボタンはなし）
+  - `generationStore.resultImageUrl` が無い場合は結果画面へリダイレクト
+- [x] **申請注記の表示**（5.6 確定仕様）
   - ヘッダー直下、または「ZIPでダウンロード」の上に「LINEクリエイターズマーケットへの申請はご自身でお願いします」を1行で表示
   - 必要に応じて LINE Creators Market（https://creator.line.me/ja/）への外部リンクを併記（`<a target="_blank" rel="noopener noreferrer">`）
-- [ ] **元画像エリア**
+- [x] **元画像エリア**
   - 完成したアイコン画像のプレビュー（小さめのサムネイル）。`resultImageUrl` を `NuxtImg` で表示
 - [ ] **文言選択ブロック**
   - 単語／セットのタブまたは切り替え。カテゴリは Phase 2 でも可
@@ -89,13 +89,13 @@
 
 ## 5.3 データ・定数・ストア
 
-- [ ] **型定義**
+- [x] **型定義**
   - `StampWordGroup`（aisatsu, kansha, reaction, oen, ai_follow, gomen_follow 等）
   - `StampWord`（id, label, group）、`StampSet`（id, name, wordIds, type?）、`StampCategory`（id, name, setIds）
   - `StampSetType`: `'required' | 'recommended_8' | 'extended'`
-- [ ] **単語プリセット定数**
+- [x] **単語プリセット定数**
   - 仕様 3.2.1 に基づく単語一覧（あいさつ・感謝・リアクション・応援・愛情・ごめん・フォロー）。初期実装では仕事用・季節は Phase 2
-- [ ] **セット・カテゴリ定数**
+- [x] **セット・カテゴリ定数**
   - 必須セット: あいさつ・感謝・リアクション・愛情・フォロー・応援
   - 推奨8個セット: `recommended_8`（ohayo, oyasumi, arigato, otsukare, iine, daisuki, gomen, bye）
   - カテゴリは「セットのグループ表示」またはタブで対応。Phase 2 で拡張可
