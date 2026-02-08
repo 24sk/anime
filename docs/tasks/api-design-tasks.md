@@ -617,27 +617,19 @@ export async function generateImageWithImagen(
 ): Promise<Buffer> {
   const genAI = getGeminiClient()
   
-  // Imagen 3モデルを使用
-  // 注意: Imagen 3をGoogle AI Studio（Gemini API）経由で直接叩く場合、
-  // 現時点では特定のリージョンやホワイトリストが必要な場合があります。
-  // 最新のImagen APIは imagen-3.0-generate-001 などのモデル名になることが多いため、
-  // 実装時にGoogle AI Studioの「Create New -> Image Generation」で最新のモデル名を確認してください。
-  // TODO: Imagen 3のAPI呼び出しを実装
-  
-  // 例（実際のAPI仕様に合わせて調整が必要）:
-  // const model = genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' })
-  // const result = await model.generateContent([prompt, sourceImage])
-  // return result.response.imageData()
-  
-  throw new Error('未実装: Imagen 3の統合が必要です')
+  // 画像生成には Gemini 画像生成モデル（gemini-2.5-flash-image）を使用。
+  // Imagen は generateContent 非対応のため、image-to-image は Gemini の generateContent で実施。
+  // 実装: server/utils/gemini.ts の generateImageWithImagen を参照。
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' })
+  const result = await model.generateContent([prompt, sourceImage])
+  // response.candidates[0].content.parts から inlineData.data を取得
 }
 ```
 
 **注意**:
 
-- Imagen 3のAPI仕様は最新の[Google AI Studio Documentation](https://ai.google.dev/docs)を参照してください。
-- Google AI Studioの「Create New -> Image Generation」で最新のモデル名を確認してください。
-- モデル名は `imagen-3.0-generate-001` などの形式になることが多いです。
+- 画像生成（image-to-image）は [Gemini Image Generation](https://ai.google.dev/gemini-api/docs/image-generation) を参照。
+- モデル `gemini-2.5-flash-image` は generateContent で画像入力・画像出力をサポートする。
 
 ### 4. ストレージ連携 (Vercel Blob)
 

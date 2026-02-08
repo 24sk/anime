@@ -159,3 +159,49 @@ WITH CHECK (anon_session_id::text = (select private.request_anon_session_id()));
 
 * **Supabase (PostgreSQL):** リアルタイム通信基盤として採用。
 * **Vercel Blob:** エッジ配信に最適化された画像ストレージとして採用。
+
+## 7. Realtime（Postgres Changes）の有効化
+
+生成中画面でジョブの完了・失敗を即時に検知するには、`generation_jobs` を **Postgres Changes** 用の publication に含める必要があります。未設定の場合はポーリングで検知しますが、有効にするとレスポンスが速くなります。
+
+### 方法A: ダッシュボードから（推奨）
+
+1. [Supabase Dashboard](https://supabase.com/dashboard) にログインし、対象プロジェクトを開く。
+2. 左メニューで **Database** → **Publications** を開く。
+3. **supabase_realtime** という publication を選択する（一覧にない場合は方法BのSQLで作成）。
+4. テーブル一覧から **generation_jobs** にチェックを入れ、保存する。
+
+> **注意:** ダッシュボードのメニュー名は **Replication** ではなく **Publications** です。Replication は別機能（データの外部複製）用です。
+
+### 方法B: SQL Editor で実行（確実）
+
+1. ダッシュボードで **SQL Editor** を開く。
+2. 以下のいずれかを実行する。
+
+**既に `supabase_realtime` が存在する場合（既存プロジェクトで他テーブルを既に Realtime に含めている場合）:**
+
+```sql
+-- generation_jobs を publication に追加
+ALTER PUBLICATION supabase_realtime ADD TABLE public.generation_jobs;
+```
+
+**初めて Realtime 用の publication を用意する場合:**
+
+```sql
+BEGIN;
+-- 既存の supabase_realtime を削除（空の publication を作り直す場合のみ）
+DROP PUBLICATION IF EXISTS supabase_realtime;
+-- 空の publication を作成
+CREATE PUBLICATION supabase_realtime;
+COMMIT;
+
+-- テーブルを追加
+ALTER PUBLICATION supabase_realtime ADD TABLE public.generation_jobs;
+```
+
+3. 実行後、フロントの `postgres_changes` 購読で `generation_jobs` の UPDATE が届くようになります。
+
+### 参考
+
+* [Subscribing to Database Changes \| Supabase Docs](https://supabase.com/docs/guides/realtime/subscribing-to-database-changes)
+* 本プロジェクトでは Realtime が届かない場合のフォールバックとして、生成中画面で約2.5秒ごとに `GET /api/jobs/:id` でジョブ状態をポーリングしています。

@@ -2,7 +2,7 @@ import { z } from 'zod'
 import type { H3Event } from 'h3'
 import { v4 as uuidv4 } from 'uuid'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '~~/server/utils/rate-limit'
-import { createErrorResponse, ErrorCodes, ERROR_MESSAGES } from '~~/server/utils/errors'
+import { createErrorResponse, ErrorCodes, ERROR_MESSAGES, getUserFacingMessageForGenerationError } from '~~/server/utils/errors'
 import { getSupabaseClient } from '~~/server/utils/supabase'
 import { getImageGenerationPrompt } from '~~/server/utils/prompts'
 import { analyzePetImage, generateImageWithImagen } from '~~/server/utils/gemini'
@@ -86,18 +86,22 @@ export default defineEventHandler(async (event: H3Event) => {
       throw createErrorResponse(500, ErrorCodes.INTERNAL_SERVER_ERROR, ERROR_MESSAGES[ErrorCodes.INTERNAL_SERVER_ERROR])
     }
 
+    // 即座に processing に更新（waitUntil がサーバーレスで実行されない場合でも pending で残らないよう、レスポンス返却前に更新）
+    const { error: processingError } = await supabase
+      .from('generation_jobs')
+      .update({ status: 'processing' })
+      .eq('id', jobId)
+
+    if (processingError) {
+      console.error('[generate] Failed to set job to processing:', processingError)
+    }
+
     // 非同期で画像生成処理を開始（バックグラウンド処理）
     // event.waitUntil()を使用することで、レスポンス送信後も処理を継続できます
     // これがないと、サーバーレス環境ではレスポンス送信後にインスタンスが即座に終了し、AI生成が中断される恐れがあります
     event.waitUntil(
       (async () => {
         try {
-          // ステータスをprocessingに更新
-          await supabase
-            .from('generation_jobs')
-            .update({ status: 'processing' })
-            .eq('id', jobId)
-
           // 画像生成処理
           // 画像解析: ペットの特徴を抽出
           const petDescription = await analyzePetImage(validatedData.source_image_url)
@@ -124,8 +128,10 @@ export default defineEventHandler(async (event: H3Event) => {
             })
             .eq('id', jobId)
         } catch (error) {
-          // エラー発生時の処理
-          const errorMessage = error instanceof Error ? error.message : '不明なエラー'
+          // エラー発生時の処理（429 クォータ超過なども確実に failed にし、ユーザー向けメッセージを保存）
+          const errorMessage = getUserFacingMessageForGenerationError(error)
+          const rawMessage = error instanceof Error ? error.message : String(error)
+          console.error('[generate] Background job failed:', rawMessage)
 
           // エラー発生時はVercel Blobの画像を削除（クリーンアップ）
           try {
@@ -136,14 +142,18 @@ export default defineEventHandler(async (event: H3Event) => {
             console.error('Failed to delete image from blob:', deleteError)
           }
 
-          // ステータスをfailedに更新
-          await supabase
+          // ステータスを必ず failed に更新（pending/processing のまま残さない）
+          const { error: updateError } = await supabase
             .from('generation_jobs')
             .update({
               status: 'failed',
               error_message: errorMessage
             })
             .eq('id', jobId)
+
+          if (updateError) {
+            console.error('[generate] Failed to update job status to failed:', updateError)
+          }
         }
       })()
     )

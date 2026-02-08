@@ -53,7 +53,8 @@ export async function analyzePetImage(imageUrl: string): Promise<string> {
 }
 
 /**
- * Imagen 3を使用して画像を生成する
+ * Gemini の画像生成モデル（Nano Banana）で画像を生成する
+ * 元画像 + プロンプトから image-to-image でアイコンを生成する
  * @param {string} sourceImageUrl - 元画像のURL（参考用）
  * @param {string} prompt - 画像生成用プロンプト
  * @returns {Promise<Buffer>} 生成された画像データ（バイナリ）
@@ -64,11 +65,16 @@ export async function generateImageWithImagen(
 ): Promise<Buffer> {
   const genAI = getGeminiClient()
 
-  /**
-   * 注意: Imagen 3 の API モデル名は環境や SDK バージョンにより異なります。
-   * Google AI Studio の最新ドキュメントに合わせ 'imagen-3.0-generate-001' を想定しています
-   */
-  const model = genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' })
+  // Gemini 画像生成モデル（Nano Banana / gemini-2.5-flash-image）を使用
+  // Imagen 3（imagen-3.0-generate-001）は generativelanguage API の generateContent 非対応のため未使用
+  // https://ai.google.dev/gemini-api/docs/image-generation
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.5-flash-image',
+    generationConfig: {
+      // 画像出力を明示的に要求（レスポンスに IMAGE を含める）
+      responseModalities: ['TEXT', 'IMAGE']
+    } as Record<string, unknown>
+  })
 
   // 元画像の特徴をより反映させるため、画像データも一緒に送信
   const imageData = await fetchImageAsBase64(sourceImageUrl)
@@ -78,8 +84,15 @@ export async function generateImageWithImagen(
     const response = await result.response
 
     // 生成された画像のバイナリデータを取得
-    // ※SDKの仕様により response.data.imageBytes 等の形式になる場合があります
-    const imageBytes = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data
+    // テキストが先に返る場合があるため、parts 全体から inlineData を持つ part を探す
+    const parts = response.candidates?.[0]?.content?.parts ?? []
+    let imageBytes: string | undefined
+    for (const part of parts) {
+      if (part.inlineData?.data) {
+        imageBytes = part.inlineData.data
+        break
+      }
+    }
 
     if (!imageBytes) {
       throw new Error('画像の生成結果が空です。セーフティフィルタに抵触した可能性があります。')
@@ -87,7 +100,7 @@ export async function generateImageWithImagen(
 
     return Buffer.from(imageBytes, 'base64')
   } catch (error) {
-    console.error('Imagen 3 Generation Error:', error)
+    console.error('Image Generation Error:', error)
     throw error
   }
 }
