@@ -6,7 +6,7 @@
 
 ### 1.1 ポーリング用エンドポイント
 
-- [ ] **2.4.2** `server/api/jobs/[id].get.ts` の作成
+- [x] **2.4.2** `server/api/jobs/[id].get.ts` の作成
   - **目的**: Supabase Realtimeのフォールバックとして、ジョブの状態を取得するエンドポイント
   - **エンドポイント**: `GET /api/jobs/:id`
   - **実装内容**:
@@ -17,7 +17,7 @@
 
 ### 1.2 画像アップロード用署名付きURL発行エンドポイント
 
-- [ ] **4.1.4** `server/api/upload/presign.post.ts` の作成
+- [x] **4.1.4** `server/api/upload/presign.post.ts` の作成
   - **目的**: クライアントが直接Vercel Blobへ元画像をアップロードするための署名付きURLを発行
   - **エンドポイント**: `POST /api/upload/presign`
   - **リクエスト**: `{ filename: string, contentType: string }`
@@ -95,18 +95,20 @@
 
 ### 中優先度（推奨）
 
-3. **2.2.2** 環境変数の読み込み確認（デバッグ用）
+1. **2.2.2** 環境変数の読み込み確認（デバッグ用）
 2. **4.3.1** Vercel Blob接続テスト（デバッグ用）
 
 ### 低優先度（必要に応じて）
 
-5. **5.3.1** タイムアウト設定の調整（実際の実行時間を確認してから）
+1. **5.3.1** タイムアウト設定の調整（実際の実行時間を確認してから）
 
 ## 実装済みタスク（参考）
 
 以下のタスクは既に実装済みです：
 
 - ✅ `server/api/generate.post.ts` - 画像生成エンドポイント
+- ✅ `server/api/jobs/[id].get.ts` - ポーリング用ジョブ状態取得エンドポイント
+- ✅ `server/api/upload/presign.post.ts` - 画像アップロード用署名付きURL発行エンドポイント
 - ✅ `server/utils/rate-limit.ts` - レートリミット実装
 - ✅ `server/utils/supabase.ts` - サーバーサイド用Supabaseクライアント
 - ✅ `server/utils/errors.ts` - エラーハンドリング

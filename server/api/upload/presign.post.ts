@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob'
 import { v4 as uuidv4 } from 'uuid'
-import { createErrorResponse, ErrorCodes } from '~~/server/utils/errors'
+import { MAX_IMAGE_SIZE_BYTES } from '~~/shared/constants/upload'
+import { createErrorResponse, ErrorCodes, ERROR_MESSAGES } from '~~/server/utils/errors'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -16,6 +17,12 @@ export default defineEventHandler(async (event) => {
 
   if (!body) {
     throw createErrorResponse(400, ErrorCodes.INTERNAL_SERVER_ERROR, 'データが受信できませんでした')
+  }
+
+  // Vercelサーバーレス制限に合わせて4.5MBを超える画像は拒否
+  const bodySize = typeof body === 'string' ? Buffer.byteLength(body) : body.length
+  if (bodySize > MAX_IMAGE_SIZE_BYTES) {
+    throw createErrorResponse(400, ErrorCodes.IMAGE_TOO_LARGE, ERROR_MESSAGES[ErrorCodes.IMAGE_TOO_LARGE])
   }
 
   try {

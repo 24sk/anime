@@ -126,7 +126,7 @@ BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
 NUXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-- [ ] 3.2 `.env.example`ファイルの作成
+- [x] 3.2 `.env.example`ファイルの作成
 
 `.env.example`ファイルを作成し、環境変数のテンプレートを記載（機密情報は含めない）：
 
@@ -145,7 +145,7 @@ BLOB_READ_WRITE_TOKEN=
 NUXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-- [ ] 3.3 `.gitignore`の確認
+- [x] 3.3 `.gitignore`の確認
 
 `.env`ファイルが`.gitignore`に含まれていることを確認：
 
@@ -208,7 +208,7 @@ SUPABASE_KEY=your_supabase_anon_key
 3. 「Create Database」→「Blob」を選択
 4. Blobストレージを作成し、`BLOB_READ_WRITE_TOKEN`を取得
 
-- [ ] 5.2 Vercel Blob SDKの設定
+- [x] 5.2 Vercel Blob SDKの設定
 
 `server/utils/blob.ts`を作成：
 
@@ -239,7 +239,7 @@ export default defineNuxtConfig({
 })
 ```
 
-- [ ] 6.2 Tailwind CSSの設定確認
+- [x] 6.2 Tailwind CSSの設定確認
 
 NuxtUIは自動的にTailwind CSSを設定しますが、カスタム設定が必要な場合は`tailwind.config.js`を作成：
 

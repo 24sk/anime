@@ -7,6 +7,7 @@ import type { H3Error } from 'h3'
 export const ErrorCodes = {
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
   INVALID_IMAGE_FORMAT: 'INVALID_IMAGE_FORMAT',
+  IMAGE_TOO_LARGE: 'IMAGE_TOO_LARGE',
   CONTENT_POLICY_VIOLATION: 'CONTENT_POLICY_VIOLATION',
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
   AI_SERVICE_UNAVAILABLE: 'AI_SERVICE_UNAVAILABLE'
@@ -45,6 +46,7 @@ export function createErrorResponse(
 export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCodes.RATE_LIMIT_EXCEEDED]: 'リクエストが多すぎます。しばらく待ってから再度お試しください。',
   [ErrorCodes.INVALID_IMAGE_FORMAT]: '対応していない画像形式です。JPGまたはPNGを使用してください。',
+  [ErrorCodes.IMAGE_TOO_LARGE]: '画像は4.5MBまでです。別の写真を選んでください。',
   [ErrorCodes.CONTENT_POLICY_VIOLATION]: 'AIの安全ポリシーにより生成できませんでした。別の写真でお試しください。',
   [ErrorCodes.INTERNAL_SERVER_ERROR]: '予期せぬエラーが発生しました。時間を置いてやり直してください。',
   [ErrorCodes.AI_SERVICE_UNAVAILABLE]: 'AIサーバーが一時的に混み合っています。時間を置いてやり直してください。'
