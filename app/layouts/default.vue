@@ -4,24 +4,24 @@
  * ヘッダー（ロゴ・UNavigationMenu・使い方・カラーモード）とメインコンテンツを提供する
  * スマホ時はハンバーガーメニューで #body を開き、4項目（利用規約・お問い合わせ・AniMeについて・FAQ）を表示
  */
-import type { NavigationMenuItem } from '@nuxt/ui'
-import { usageTourSteps } from '~/composables/useUsageTour'
+import type { NavigationMenuItem } from '@nuxt/ui';
+import { usageTourSteps } from '~/composables/useUsageTour';
 
-const route = useRoute()
-const toast = useToast()
+const route = useRoute();
+const toast = useToast();
 
 // モバイルメニュー開閉状態（#body を閉じるために使用）
-const headerOpen = ref(false)
+const headerOpen = ref(false);
 
 // 使い方ガイド（Driver.js）。DOM 参照のため onMounted（クライアント）で初期化
-const driverInstance = ref<ReturnType<typeof useDriver> | null>(null)
+const driverInstance = ref<ReturnType<typeof useDriver> | null>(null);
 onMounted(() => {
   driverInstance.value = useDriver({
     showProgress: true,
     animate: true,
     steps: usageTourSteps
-  })
-})
+  });
+});
 
 /**
  * 使い方ガイドツアーを開始する
@@ -33,10 +33,10 @@ function startUsageTour() {
       title: '使い方ガイド',
       description: 'トップページでご利用ください。',
       color: 'neutral'
-    })
-    return
+    });
+    return;
   }
-  driverInstance.value?.drive()
+  driverInstance.value?.drive();
 }
 
 /**
@@ -68,7 +68,7 @@ const navItems = computed<NavigationMenuItem[]>(() => [
     to: '/faq',
     active: route.path.startsWith('/faq')
   }
-])
+]);
 </script>
 
 <template>

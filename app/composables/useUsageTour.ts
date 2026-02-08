@@ -5,12 +5,12 @@
 
 /** Driver.js のステップ定義（useDriver に渡す形式） */
 export interface UsageTourStep {
-  element?: string
+  element?: string;
   popover: {
-    title: string
-    description: string
-    side?: 'top' | 'right' | 'bottom' | 'left'
-  }
+    title: string;
+    description: string;
+    side?: 'top' | 'right' | 'bottom' | 'left';
+  };
 }
 
 /**
@@ -57,4 +57,4 @@ export const usageTourSteps: UsageTourStep[] = [
       side: 'left'
     }
   }
-]
+];

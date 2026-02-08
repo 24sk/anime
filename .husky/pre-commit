@@ -1,0 +1,3 @@
+# コミット前に型チェックとリントを実行（エラー時はコミットを中止）
+pnpm run typecheck
+pnpm run lint

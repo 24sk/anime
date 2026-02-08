@@ -7,6 +7,7 @@
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "prepare": "husky",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck"
   },
@@ -26,6 +27,7 @@
     "zod": "^4.3.4"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
     "@nuxt/eslint": "^1.12.1",
     "@nuxt/eslint-config": "^1.12.1",
     "@nuxtjs/google-fonts": "^3.2.0",

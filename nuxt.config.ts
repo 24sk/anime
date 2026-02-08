@@ -79,18 +79,18 @@ export default defineNuxtConfig({
       rollupOptions: {
         onwarn(warning, warn) {
           if (!warning) {
-            warn(warning)
-            return
+            warn(warning);
+            return;
           }
-          const source = (warning as { source?: string }).source
+          const source = (warning as { source?: string }).source;
           if (
             warning.code === 'UNUSED_EXTERNAL_IMPORT'
             && typeof source === 'string'
             && source.includes('@supabase')
           ) {
-            return
+            return;
           }
-          warn(warning)
+          warn(warning);
         }
       }
     }
@@ -100,25 +100,25 @@ export default defineNuxtConfig({
     // Nitro の Rollup ビルドで Supabase の未使用インポート警告を抑制（rollupConfig 構築後に onwarn を上書き）
     'nitro:build:before'(nitro) {
       nitro.hooks.hook('rollup:before', (_nitro, rollupConfig) => {
-        const defaultOnwarn = rollupConfig.onwarn
+        const defaultOnwarn = rollupConfig.onwarn;
         // Nitro の Rollup 型と互換させるため、内部で unknown として扱い最後に型アサーション
         rollupConfig.onwarn = ((warning: unknown, defaultHandler: (w: unknown) => void) => {
-          const w = warning as { code?: string, source?: string, message?: string }
-          const msg = String(w.message ?? '')
-          const src = String(w.source ?? '')
+          const w = warning as { code?: string; source?: string; message?: string };
+          const msg = String(w.message ?? '');
+          const src = String(w.source ?? '');
           const isSupabaseUnusedImport
             = (w.code === 'UNUSED_EXTERNAL_IMPORT' || msg.includes('imported from external module'))
-              && (src.includes('supabase') || msg.includes('supabase'))
+              && (src.includes('supabase') || msg.includes('supabase'));
           if (isSupabaseUnusedImport) {
-            return
+            return;
           }
           if (defaultOnwarn) {
-            (defaultOnwarn as (warning: unknown, defaultHandler: (w: unknown) => void) => void).call(rollupConfig, warning, defaultHandler)
+            (defaultOnwarn as (warning: unknown, defaultHandler: (w: unknown) => void) => void).call(rollupConfig, warning, defaultHandler);
           } else {
-            defaultHandler(warning)
+            defaultHandler(warning);
           }
-        }) as typeof rollupConfig.onwarn
-      })
+        }) as typeof rollupConfig.onwarn;
+      });
     }
   },
 
@@ -149,4 +149,4 @@ export default defineNuxtConfig({
     redirect: false,
     types: '~~/shared/types/database.types.ts'
   }
-})
+});

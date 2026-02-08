@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { StyleOption } from '~~/shared/types/components/page/home'
+import type { StyleOption } from '~~/shared/types/components/page/home';
 
-const generationStore = useGenerationStore()
+const generationStore = useGenerationStore();
 
 const styles: readonly StyleOption[] = [
   {
@@ -34,14 +34,14 @@ const styles: readonly StyleOption[] = [
     label: 'シンプルイラスト',
     description: 'シンプルで使いやすいミニマル風'
   }
-]
+];
 
 const selectedStyle = computed({
   get: () => generationStore.selectedStyle,
   set: (value) => {
-    generationStore.setSelectedStyle(value)
+    generationStore.setSelectedStyle(value);
   }
-})
+});
 </script>
 
 <template>

@@ -5,13 +5,13 @@
  */
 
 // お問い合わせ先メールアドレス（環境変数またはデフォルト）
-const contactEmail = import.meta.env.NUXT_PUBLIC_CONTACT_EMAIL ?? 'support@example.com'
-const mailtoLink = computed(() => `mailto:${contactEmail}`)
+const contactEmail = import.meta.env.NUXT_PUBLIC_CONTACT_EMAIL ?? 'support@example.com';
+const mailtoLink = computed(() => `mailto:${contactEmail}`);
 
 useSeoMeta({
   title: 'お問い合わせ',
   description: 'AniMe（アニミー）へのお問い合わせは、下記メールリンクからお願いいたします。'
-})
+});
 </script>
 
 <template>

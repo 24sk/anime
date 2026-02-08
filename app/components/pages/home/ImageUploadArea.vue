@@ -4,11 +4,11 @@
  * NuxtUIのUFileUploadコンポーネントを使用して画像をアップロードする
  * ファイルサイズはVercelサーバーレス制限に合わせ4.5MBまで
  */
-import { MAX_IMAGE_SIZE_BYTES } from '~~/shared/constants/upload'
-import { useGenerationStore } from '~/stores/generation'
+import { MAX_IMAGE_SIZE_BYTES } from '~~/shared/constants/upload';
+import { useGenerationStore } from '~/stores/generation';
 
-const generationStore = useGenerationStore()
-const toast = useToast()
+const generationStore = useGenerationStore();
+const toast = useToast();
 
 /**
  * ファイルが選択されたときに呼び出される
@@ -17,24 +17,24 @@ const toast = useToast()
  */
 const handleFileChange = (file: File | null | undefined) => {
   if (!file) {
-    generationStore.setImageFile(null)
-    return
+    generationStore.setImageFile(null);
+    return;
   }
   if (!file.type.startsWith('image/')) {
-    generationStore.setImageFile(null)
-    return
+    generationStore.setImageFile(null);
+    return;
   }
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
     toast.add({
       title: 'ファイルが大きすぎます',
       description: '画像は4.5MBまでです。別の写真を選んでください。',
       color: 'error'
-    })
-    generationStore.setImageFile(null)
-    return
+    });
+    generationStore.setImageFile(null);
+    return;
   }
-  generationStore.setImageFile(file)
-}
+  generationStore.setImageFile(file);
+};
 </script>
 
 <template>

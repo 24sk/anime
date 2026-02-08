@@ -6,4 +6,4 @@ export default defineAppConfig({
       // also: neutral, success, warning, error
     }
   }
-})
+});

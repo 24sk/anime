@@ -9,9 +9,9 @@ export const styleTypes = [
   'cyberpunk',
   'korean-style',
   'simple-illustration'
-] as const
+] as const;
 
 /**
  * スタイルタイプの型
  */
-export type StyleType = typeof styleTypes[number]
+export type StyleType = typeof styleTypes[number];

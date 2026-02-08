@@ -1,5 +1,4 @@
-import type { StyleType } from '~~/shared/types/style'
-import { styleTypes } from '~~/shared/types/style'
+import type { StyleType } from '~~/shared/types/style';
 
 /**
  * ペット画像解析用のシステムプロンプトを生成する
@@ -17,7 +16,7 @@ Please extract the following information from the uploaded pet photo:
 
 Output the description in English, focusing on visual traits suitable for image generation prompts.
 Example: "A Shiba Inu with brown and white fur. Wearing a red collar. Has a gentle expression and is tilting its head slightly."
-`
+`;
 }
 
 /**
@@ -37,10 +36,10 @@ export function getImageGenerationPrompt(
     'cyberpunk': 'Cyberpunk pet icon, neon lights, futuristic accessories, vibrant glowing colors, high contrast, sci-fi aesthetic, cool.',
     'korean-style': 'Modern Korean-style pet icon, flat design, vibrant soft colors, simple but cute, charms, stickers, app icon style.',
     'simple-illustration': 'Simple minimalist pet icon, clean lines, flat color, vector art, white background, modern, logo style.'
-  }
+  };
 
   // styleTypeが有効な値でない場合は、デフォルトのsimple-illustrationを使用
-  const stylePrompt = stylePrompts[styleType] || stylePrompts['simple-illustration']
+  const stylePrompt = stylePrompts[styleType] || stylePrompts['simple-illustration'];
 
-  return `${stylePrompt} Subject: ${petDescription}`
+  return `${stylePrompt} Subject: ${petDescription}`;
 }

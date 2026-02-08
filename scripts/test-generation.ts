@@ -1,22 +1,22 @@
-import { createInterface } from 'node:readline'
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { config } from 'dotenv'
-import fs from 'node:fs'
-import path from 'node:path'
+import { createInterface } from 'node:readline';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { config } from 'dotenv';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Load environment variables
-config()
+config();
 
 // Mock Nuxt runtime config and utilities（スクリプト単体実行用）
 interface MockRuntimeConfig {
-  geminiApiKey: string | undefined
+  geminiApiKey: string | undefined;
 }
 const mockRuntimeConfig: MockRuntimeConfig = {
   geminiApiKey: process.env.GEMINI_API_KEY || process.env.NUXT_GEMINI_API_KEY
-}
+};
 
-const g = globalThis as typeof globalThis & { useRuntimeConfig: () => MockRuntimeConfig }
-g.useRuntimeConfig = () => mockRuntimeConfig
+const g = globalThis as typeof globalThis & { useRuntimeConfig: () => MockRuntimeConfig };
+g.useRuntimeConfig = () => mockRuntimeConfig;
 
 // Define styles (copied from shared/types/style.ts to avoid alias issues)
 const styleTypes = [
@@ -26,9 +26,9 @@ const styleTypes = [
   'cyberpunk',
   'korean-style',
   'simple-illustration'
-] as const
+] as const;
 
-type StyleType = typeof styleTypes[number]
+type StyleType = typeof styleTypes[number];
 
 // --- Copied & Adapted Logic from server/utils/prompts.ts ---
 
@@ -36,7 +36,7 @@ const MODEL_OPTIONS = [
   { name: 'Gemini 2.5 Flash Image', id: 'gemini-2.5-flash-image' },
   { name: 'Gemini 3 Pro Image', id: 'gemini-3-pro-image-preview' }, // Assuming potential ID, likely to fail if not available
   { name: 'Imagen 4', id: 'imagen-4.0-generate-001' } // Assuming potential ID per user request
-] as const
+] as const;
 
 function getPetAnalysisPrompt(): string {
   return `
@@ -50,7 +50,7 @@ Please extract the following information from the uploaded pet photo:
 
 Output the description in English, focusing on visual traits suitable for image generation prompts.
 Example: "A Shiba Inu with brown and white fur. Wearing a red collar. Has a gentle expression and is tilting its head slightly."
-`
+`;
 }
 
 function getImageGenerationPrompt(
@@ -64,39 +64,39 @@ function getImageGenerationPrompt(
     'cyberpunk': 'Cyberpunk pet icon, neon lights, futuristic accessories, vibrant glowing colors, high contrast, sci-fi aesthetic, cool.',
     'korean-style': 'Modern Korean-style pet icon, flat design, vibrant soft colors, simple but cute, charms, stickers, app icon style.',
     'simple-illustration': 'Simple minimalist pet icon, clean lines, flat color, vector art, white background, modern, logo style, kawaii, cute chibi style, round sparkling eyes.'
-  }
+  };
 
-  const stylePrompt = stylePrompts[styleType] || stylePrompts[styleTypes[styleTypes.length - 1]]
-  return `${stylePrompt} Subject: ${petDescription}`
+  const stylePrompt = stylePrompts[styleType] || stylePrompts[styleTypes[styleTypes.length - 1]];
+  return `${stylePrompt} Subject: ${petDescription}`;
 }
 
 // --- Logic from server/utils/gemini.ts (Adapted) ---
 
 function getGeminiClient() {
   if (!mockRuntimeConfig.geminiApiKey) {
-    throw new Error('GEMINI_API_KEY is not set')
+    throw new Error('GEMINI_API_KEY is not set');
   }
-  return new GoogleGenerativeAI(mockRuntimeConfig.geminiApiKey)
+  return new GoogleGenerativeAI(mockRuntimeConfig.geminiApiKey);
 }
 
 async function analyzePetImage(imagePath: string): Promise<string> {
-  const genAI = getGeminiClient()
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  const genAI = getGeminiClient();
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-  const imageBuffer = fs.readFileSync(imagePath)
+  const imageBuffer = fs.readFileSync(imagePath);
   const imageData = {
     inlineData: {
       data: imageBuffer.toString('base64'),
       mimeType: 'image/jpeg' // Assuming jpeg for sample.jpg
     }
-  }
+  };
 
-  const systemInstruction = getPetAnalysisPrompt()
+  const systemInstruction = getPetAnalysisPrompt();
 
-  console.log('Analyzing image...')
-  const result = await model.generateContent([systemInstruction, imageData])
-  const response = await result.response
-  return response.text()
+  console.log('Analyzing image...');
+  const result = await model.generateContent([systemInstruction, imageData]);
+  const response = await result.response;
+  return response.text();
 }
 
 async function generateImageWithImagen(
@@ -105,12 +105,12 @@ async function generateImageWithImagen(
   modelName: string
 ): Promise<Buffer> {
   if (!mockRuntimeConfig.geminiApiKey) {
-    throw new Error('GEMINI_API_KEY is not set')
+    throw new Error('GEMINI_API_KEY is not set');
   }
 
   // --- Imagen Models: Use REST API (predict) ---
   if (modelName.includes('imagen')) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${mockRuntimeConfig.geminiApiKey}`
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${mockRuntimeConfig.geminiApiKey}`;
 
     const requestBody = {
       instances: [
@@ -121,10 +121,10 @@ async function generateImageWithImagen(
       parameters: {
         sampleCount: 1
       }
-    }
+    };
 
-    console.log(`Generating image with model: ${modelName} via REST API (predict)`)
-    console.log('Prompt:', prompt)
+    console.log(`Generating image with model: ${modelName} via REST API (predict)`);
+    console.log('Prompt:', prompt);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -132,83 +132,83 @@ async function generateImageWithImagen(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
-    })
+    });
 
     if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`Imagen API Error: ${response.status} ${response.statusText} - ${errorText}`)
+      const errorText = await response.text();
+      throw new Error(`Imagen API Error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     // Imagen predict API のレスポンス型（predictions[].bytesBase64Encoded で画像データを返す）
     interface ImagenPredictResponse {
-      predictions?: Array<{ bytesBase64Encoded?: string, mimeType?: string }>
+      predictions?: Array<{ bytesBase64Encoded?: string; mimeType?: string }>;
     }
-    const data = (await response.json()) as ImagenPredictResponse
-    const base64Image = data.predictions?.[0]?.bytesBase64Encoded
+    const data = (await response.json()) as ImagenPredictResponse;
+    const base64Image = data.predictions?.[0]?.bytesBase64Encoded;
 
     if (!base64Image) {
       if (data.predictions?.[0]?.mimeType && data.predictions?.[0]?.bytesBase64Encoded) {
-        return Buffer.from(data.predictions[0].bytesBase64Encoded, 'base64')
+        return Buffer.from(data.predictions[0].bytesBase64Encoded, 'base64');
       }
-      console.error('API Response for debugging:', JSON.stringify(data, null, 2))
-      throw new Error('No image returned from Imagen API')
+      console.error('API Response for debugging:', JSON.stringify(data, null, 2));
+      throw new Error('No image returned from Imagen API');
     }
 
-    return Buffer.from(base64Image, 'base64')
+    return Buffer.from(base64Image, 'base64');
   }
 
   // --- Gemini Models: Use SDK (generateContent) ---
-  console.log(`Generating image with model: ${modelName} via SDK (generateContent)`)
-  console.log('Prompt:', prompt)
+  console.log(`Generating image with model: ${modelName} via SDK (generateContent)`);
+  console.log('Prompt:', prompt);
 
-  const genAI = getGeminiClient()
+  const genAI = getGeminiClient();
   // generationConfig: 一部モデルは responseModalities 等をサポート（SDK の型で未定義のため明示的に型指定）
-  const generationConfig = {} as Record<string, unknown>
+  const generationConfig = {} as Record<string, unknown>;
   const model = genAI.getGenerativeModel({
     model: modelName,
     generationConfig
-  })
+  });
 
-  const imageBuffer = fs.readFileSync(sourceImagePath)
+  const imageBuffer = fs.readFileSync(sourceImagePath);
   const imageData = {
     inlineData: {
       data: imageBuffer.toString('base64'),
       mimeType: 'image/jpeg'
     }
-  }
+  };
 
   try {
     // Attempt to call generateContent with prompt & (optionally) image
     // WARNING: Image input to generateContent for image GENERATION depends on model support (e.g. Image-to-Image editing)
     // If the model does not support multimodal input for generation, this might fail or produce text describing the image.
-    const result = await model.generateContent([prompt, imageData])
-    const response = await result.response
+    const result = await model.generateContent([prompt, imageData]);
+    const response = await result.response;
 
     // Extract image parts
-    const parts = response.candidates?.[0]?.content?.parts ?? []
-    let imageBytes: string | undefined
+    const parts = response.candidates?.[0]?.content?.parts ?? [];
+    let imageBytes: string | undefined;
     // Check for inlineData (image generation typically returns this)
     for (const part of parts) {
       if (part.inlineData?.data) {
-        imageBytes = part.inlineData.data
-        break
+        imageBytes = part.inlineData.data;
+        break;
       }
     }
 
     if (!imageBytes) {
       // Check if response contains just text (e.g. refusal or description)
-      const textPart = response.text()
+      const textPart = response.text();
       if (textPart) {
-        console.warn('Model returned text instead of image:', textPart)
-        throw new Error(`Model returned text: "${textPart.substring(0, 100)}..."`)
+        console.warn('Model returned text instead of image:', textPart);
+        throw new Error(`Model returned text: "${textPart.substring(0, 100)}..."`);
       }
-      throw new Error('Image generation failed: No image data returned.')
+      throw new Error('Image generation failed: No image data returned.');
     }
 
-    return Buffer.from(imageBytes, 'base64')
+    return Buffer.from(imageBytes, 'base64');
   } catch (error) {
-    console.error('Image Generation Error:', error)
-    throw error
+    console.error('Image Generation Error:', error);
+    throw error;
   }
 }
 
@@ -220,93 +220,93 @@ function askQuestion(query: string): Promise<string> {
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout
-  })
+  });
 
   return new Promise((resolve) => {
     rl.question(query, (answer) => {
-      rl.close()
-      resolve(answer)
-    })
-  })
+      rl.close();
+      resolve(answer);
+    });
+  });
 }
 
 // --- Main Execution ---
 
 async function main() {
-  const sourceImage = path.resolve('public/images/sample.jpg')
-  const outputDir = path.resolve('scripts/output')
+  const sourceImage = path.resolve('public/images/sample.jpg');
+  const outputDir = path.resolve('scripts/output');
 
   if (!fs.existsSync(sourceImage)) {
-    console.error(`Source image not found at: ${sourceImage}`)
-    process.exit(1)
+    console.error(`Source image not found at: ${sourceImage}`);
+    process.exit(1);
   }
 
   if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true })
+    fs.mkdirSync(outputDir, { recursive: true });
   }
 
   try {
     // 0. Select Model
-    console.log('\n--- Select Model ---')
+    console.log('\n--- Select Model ---');
     MODEL_OPTIONS.forEach((model, index) => {
-      console.log(`${index + 1}. ${model.name}`)
-    })
-    const modelAnswer = await askQuestion('\nSelect a model (enter number, default 1): ')
-    const modelIndex = parseInt(modelAnswer, 10) - 1
+      console.log(`${index + 1}. ${model.name}`);
+    });
+    const modelAnswer = await askQuestion('\nSelect a model (enter number, default 1): ');
+    const modelIndex = parseInt(modelAnswer, 10) - 1;
     const selectedModel = (modelIndex >= 0 && modelIndex < MODEL_OPTIONS.length)
       ? MODEL_OPTIONS[modelIndex]
-      : MODEL_OPTIONS[0]
+      : MODEL_OPTIONS[0];
 
-    console.log(`\nSelected Model: ${selectedModel.name} (${selectedModel.id})`)
+    console.log(`\nSelected Model: ${selectedModel.name} (${selectedModel.id})`);
 
     // 1. Select Style
-    console.log('\n--- Select Style ---')
+    console.log('\n--- Select Style ---');
     styleTypes.forEach((style, index) => {
-      console.log(`${index + 1}. ${style}`)
-    })
-    console.log('a. All styles')
+      console.log(`${index + 1}. ${style}`);
+    });
+    console.log('a. All styles');
 
-    const answer = await askQuestion('\nSelect a style (enter number or "a"): ')
+    const answer = await askQuestion('\nSelect a style (enter number or "a"): ');
 
-    let selectedStyles: StyleType[] = []
+    let selectedStyles: StyleType[] = [];
 
     if (answer.toLowerCase() === 'a') {
-      selectedStyles = [...styleTypes]
+      selectedStyles = [...styleTypes];
     } else {
-      const index = parseInt(answer, 10) - 1
+      const index = parseInt(answer, 10) - 1;
       if (index >= 0 && index < styleTypes.length) {
-        selectedStyles = [styleTypes[index]]
+        selectedStyles = [styleTypes[index]];
       } else {
-        console.log('Invalid selection, defaulting to ALL styles.')
-        selectedStyles = [...styleTypes]
+        console.log('Invalid selection, defaulting to ALL styles.');
+        selectedStyles = [...styleTypes];
       }
     }
 
-    console.log(`\nSelected styles: ${selectedStyles.join(', ')}\n`)
+    console.log(`\nSelected styles: ${selectedStyles.join(', ')}\n`);
 
     // 1. Analyze
-    const description = await analyzePetImage(sourceImage)
-    console.log('\n--- Pet Analysis Result ---')
-    console.log(description)
-    console.log('---------------------------\n')
+    const description = await analyzePetImage(sourceImage);
+    console.log('\n--- Pet Analysis Result ---');
+    console.log(description);
+    console.log('---------------------------\n');
 
     // 2. Generate for each style
     for (const style of selectedStyles) {
-      console.log(`\nProcessing style: ${style}`)
-      const prompt = getImageGenerationPrompt(style, description)
+      console.log(`\nProcessing style: ${style}`);
+      const prompt = getImageGenerationPrompt(style, description);
 
       try {
-        const imageBuffer = await generateImageWithImagen(sourceImage, prompt, selectedModel.id)
-        const outputPath = path.join(outputDir, `result_${selectedModel.id}_${style}.png`)
-        fs.writeFileSync(outputPath, imageBuffer)
-        console.log(`Saved: ${outputPath}`)
+        const imageBuffer = await generateImageWithImagen(sourceImage, prompt, selectedModel.id);
+        const outputPath = path.join(outputDir, `result_${selectedModel.id}_${style}.png`);
+        fs.writeFileSync(outputPath, imageBuffer);
+        console.log(`Saved: ${outputPath}`);
       } catch (e) {
-        console.error(`Failed to generate for ${style}:`, e)
+        console.error(`Failed to generate for ${style}:`, e);
       }
     }
   } catch (error) {
-    console.error('An error occurred:', error)
+    console.error('An error occurred:', error);
   }
 }
 
-main()
+main();

@@ -9,7 +9,7 @@ useSeoMeta({
   title: 'AniMeについて',
   description:
     'AniMe（アニミー）は、ペットの写真をAIでアイコン化するサービスです。「うちの子」を世界に一つだけのデジタルアートに。'
-})
+});
 </script>
 
 <template>

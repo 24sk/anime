@@ -4,25 +4,25 @@
   プログレスシミュレーション・ステータスメッセージ・広告枠・最低待機10秒・Realtimeで完了検知し結果画面へ遷移。
 -->
 <script setup lang="ts">
-const generationStore = useGenerationStore()
-const router = useRouter()
-const route = useRoute()
-const supabase = useSupabase()
+const generationStore = useGenerationStore();
+const router = useRouter();
+const route = useRoute();
+const supabase = useSupabase();
 
 /** 開発時のみ: 画面表示確認用プレビューモード（?preview=1 でリダイレクト・APIをスキップ） */
 const isPreviewMode
   = import.meta.dev
-    && route.query.preview === '1'
+    && route.query.preview === '1';
 
-useSeoMeta({ title: '生成中' })
+useSeoMeta({ title: '生成中' });
 
 /** 最低待機時間（ミリ秒）。生成完了後もこの時間が経過するまで次へ進まない */
-const MIN_WAIT_MS = 10_000
+const MIN_WAIT_MS = 10_000;
 
 /** 進捗シミュレーション 0〜100。実際のAPI進捗ではなく演出用 */
-const progress = ref(0)
+const progress = ref(0);
 /** ランダムに切り替えるステータスメッセージ */
-const statusMessage = ref('準備しています...')
+const statusMessage = ref('準備しています...');
 
 /** ステータスメッセージの候補（仕様に沿った文言） */
 const STATUS_MESSAGES = [
@@ -32,45 +32,45 @@ const STATUS_MESSAGES = [
   '色を塗っています...',
   '仕上げ中です...',
   'もう少しお待ちください...'
-] as const
+] as const;
 
 /** ランダムで次のメッセージを返す */
 function pickRandomMessage(): string {
-  const i = Math.floor(Math.random() * STATUS_MESSAGES.length)
-  return STATUS_MESSAGES[i] ?? STATUS_MESSAGES[0]
+  const i = Math.floor(Math.random() * STATUS_MESSAGES.length);
+  return STATUS_MESSAGES[i] ?? STATUS_MESSAGES[0];
 }
 
 /** ページ表示開始時刻。最低待機時間の計算に使用 */
-const startedAt = ref(0)
+const startedAt = ref(0);
 /** クリーンアップ用：タイマーID・Realtimeチャンネル・ポーリング用 */
-const progressIntervalId = ref<ReturnType<typeof setInterval> | null>(null)
-const messageIntervalId = ref<ReturnType<typeof setInterval> | null>(null)
-let navigateCheckTimerId: ReturnType<typeof setInterval> | null = null
-let realtimeChannel: { unsubscribe: () => void } | null = null
-let pollIntervalId: ReturnType<typeof setInterval> | null = null
+const progressIntervalId = ref<ReturnType<typeof setInterval> | null>(null);
+const messageIntervalId = ref<ReturnType<typeof setInterval> | null>(null);
+let navigateCheckTimerId: ReturnType<typeof setInterval> | null = null;
+let realtimeChannel: { unsubscribe: () => void } | null = null;
+let pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
 /** 結果画面へ遷移してよいか判定し、条件を満たしていれば遷移する */
 function tryNavigateToResult() {
-  if (generationStore.status !== 'completed') return
-  const elapsed = Date.now() - startedAt.value
+  if (generationStore.status !== 'completed') return;
+  const elapsed = Date.now() - startedAt.value;
   if (elapsed >= MIN_WAIT_MS) {
     if (navigateCheckTimerId) {
-      clearInterval(navigateCheckTimerId)
-      navigateCheckTimerId = null
+      clearInterval(navigateCheckTimerId);
+      navigateCheckTimerId = null;
     }
-    router.push('/result')
+    router.push('/result');
   }
 }
 
 /** ジョブ状態APIのレスポンス型 */
 type JobStatusResponse = {
-  job_id: string
-  status: string
-  result_image_url: string | null
-  error_message: string | null
-  created_at: string | null
-  completed_at: string | null
-}
+  job_id: string;
+  status: string;
+  result_image_url: string | null;
+  error_message: string | null;
+  created_at: string | null;
+  completed_at: string | null;
+};
 
 /**
  * ジョブ状態を取得し、完了・失敗ならストアを更新する（Realtimeが届かない場合のフォールバック）
@@ -79,70 +79,70 @@ type JobStatusResponse = {
  */
 async function fetchJobStatus(jobId: string): Promise<boolean> {
   try {
-    const res = await $fetch<JobStatusResponse>(`/api/jobs/${jobId}`)
+    const res = await $fetch<JobStatusResponse>(`/api/jobs/${jobId}`);
     if (res.status === 'completed') {
-      generationStore.setStatus('completed')
-      generationStore.setResultImageUrl(res.result_image_url ?? null)
-      progress.value = 100
+      generationStore.setStatus('completed');
+      generationStore.setResultImageUrl(res.result_image_url ?? null);
+      progress.value = 100;
       if (!navigateCheckTimerId) {
-        navigateCheckTimerId = setInterval(tryNavigateToResult, 500)
+        navigateCheckTimerId = setInterval(tryNavigateToResult, 500);
       }
-      return true
+      return true;
     }
     if (res.status === 'failed') {
-      generationStore.setStatus('error')
+      generationStore.setStatus('error');
       generationStore.setErrorMessage(
         res.error_message?.trim() || '生成に失敗しました。もう一度やり直してください。'
-      )
-      return true
+      );
+      return true;
     }
   } catch {
     // ネットワークエラー等は無視し、次回のポーリングで再試行
   }
-  return false
+  return false;
 }
 
 onMounted(() => {
   // 開発時プレビュー: エラー表示を確認する（?preview=1&error=1）
   if (isPreviewMode && route.query.error === '1') {
-    generationStore.setStatus('error')
-    generationStore.setErrorMessage('プレビュー用のエラーメッセージです。')
-    return
+    generationStore.setStatus('error');
+    generationStore.setErrorMessage('プレビュー用のエラーメッセージです。');
+    return;
   }
 
   // 通常時は jobId が無ければホームへリダイレクト
-  let jobId = generationStore.jobId
+  let jobId = generationStore.jobId;
   /** プレビューで表示のみ確認している場合（Realtime・ポーリングをスキップ） */
-  let previewDisplayOnly = false
+  let previewDisplayOnly = false;
   if (!jobId) {
     if (isPreviewMode) {
-      jobId = '00000000-0000-0000-0000-000000000000'
-      generationStore.setJobId(jobId)
-      generationStore.setStatus('generating')
-      previewDisplayOnly = true
+      jobId = '00000000-0000-0000-0000-000000000000';
+      generationStore.setJobId(jobId);
+      generationStore.setStatus('generating');
+      previewDisplayOnly = true;
     } else {
-      router.replace('/')
-      return
+      router.replace('/');
+      return;
     }
   }
 
-  startedAt.value = Date.now()
+  startedAt.value = Date.now();
 
   // プログレスバーを0→100へ約14秒でシミュレーション（AI処理進捗の演出）
-  const progressStep = 100 / (14_000 / 180)
+  const progressStep = 100 / (14_000 / 180);
   progressIntervalId.value = setInterval(() => {
-    progress.value = Math.min(100, Math.round(progress.value + progressStep))
+    progress.value = Math.min(100, Math.round(progress.value + progressStep));
     if (progress.value >= 100 && progressIntervalId.value) {
-      clearInterval(progressIntervalId.value)
-      progressIntervalId.value = null
+      clearInterval(progressIntervalId.value);
+      progressIntervalId.value = null;
     }
-  }, 180)
+  }, 180);
 
   // ステータスメッセージを約2.5秒ごとにランダム切り替え
-  statusMessage.value = pickRandomMessage()
+  statusMessage.value = pickRandomMessage();
   messageIntervalId.value = setInterval(() => {
-    statusMessage.value = pickRandomMessage()
-  }, 2500)
+    statusMessage.value = pickRandomMessage();
+  }, 2500);
 
   // プレビュー表示のみの場合は Realtime・ポーリングは行わない
   if (!previewDisplayOnly) {
@@ -159,52 +159,52 @@ onMounted(() => {
         },
         (payload) => {
           const row = payload.new as {
-            status?: string
-            result_image_url?: string | null
-            error_message?: string | null
-          }
+            status?: string;
+            result_image_url?: string | null;
+            error_message?: string | null;
+          };
           if (row.status === 'completed') {
-            generationStore.setStatus('completed')
-            generationStore.setResultImageUrl(row.result_image_url ?? null)
-            progress.value = 100
+            generationStore.setStatus('completed');
+            generationStore.setResultImageUrl(row.result_image_url ?? null);
+            progress.value = 100;
             if (!navigateCheckTimerId) {
-              navigateCheckTimerId = setInterval(tryNavigateToResult, 500)
+              navigateCheckTimerId = setInterval(tryNavigateToResult, 500);
             }
           }
           if (row.status === 'failed') {
-            generationStore.setStatus('error')
+            generationStore.setStatus('error');
             // バックエンドが保存したユーザー向けメッセージを表示（未設定時は既定文言）
             generationStore.setErrorMessage(
               row.error_message?.trim() || '生成に失敗しました。もう一度やり直してください。'
-            )
+            );
           }
         }
       )
-      .subscribe()
+      .subscribe();
 
     // ポーリング: Realtime が届かない環境でも完了・失敗を検知する（約2.5秒ごと）
-    const POLL_INTERVAL_MS = 2500
+    const POLL_INTERVAL_MS = 2500;
     pollIntervalId = setInterval(async () => {
-      if (generationStore.status !== 'generating' && generationStore.status !== 'idle') return
-      const done = await fetchJobStatus(jobId)
+      if (generationStore.status !== 'generating' && generationStore.status !== 'idle') return;
+      const done = await fetchJobStatus(jobId);
       if (done && pollIntervalId) {
-        clearInterval(pollIntervalId)
-        pollIntervalId = null
+        clearInterval(pollIntervalId);
+        pollIntervalId = null;
       }
-    }, POLL_INTERVAL_MS)
+    }, POLL_INTERVAL_MS);
   }
-})
+});
 
 onUnmounted(() => {
-  if (progressIntervalId.value) clearInterval(progressIntervalId.value)
-  if (messageIntervalId.value) clearInterval(messageIntervalId.value)
-  if (navigateCheckTimerId) clearInterval(navigateCheckTimerId)
+  if (progressIntervalId.value) clearInterval(progressIntervalId.value);
+  if (messageIntervalId.value) clearInterval(messageIntervalId.value);
+  if (navigateCheckTimerId) clearInterval(navigateCheckTimerId);
   if (pollIntervalId) {
-    clearInterval(pollIntervalId)
-    pollIntervalId = null
+    clearInterval(pollIntervalId);
+    pollIntervalId = null;
   }
-  realtimeChannel?.unsubscribe()
-})
+  realtimeChannel?.unsubscribe();
+});
 </script>
 
 <template>

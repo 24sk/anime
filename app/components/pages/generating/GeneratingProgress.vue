@@ -7,9 +7,9 @@
 <script setup lang="ts">
 /** 進捗値（0-100）。親でシミュレーションして渡す */
 defineProps<{
-  progress: number
-  statusMessage: string
-}>()
+  progress: number;
+  statusMessage: string;
+}>();
 </script>
 
 <template>

@@ -8,12 +8,12 @@ useSeoMeta({
   title: 'よくある質問（FAQ）',
   description:
     'AniMe（アニミー）のよくある質問です。対応画像形式、生成時間、スタイルの違いなどをまとめています。'
-})
+});
 
 /** FAQの1項目 */
 interface FaqItem {
-  question: string
-  answer: string
+  question: string;
+  answer: string;
 }
 
 const faqItems: FaqItem[] = [
@@ -42,20 +42,20 @@ const faqItems: FaqItem[] = [
     answer:
       '生成されたアイコンは、ご利用いただいた方の個人利用（SNSアイコン、デバイスの壁紙など）にご利用いただけます。商用利用や再配布については、利用規約をご確認ください。'
   }
-]
+];
 
 /**
  * 回答文を句点（。）で分割し、空でない行の配列を返す
  * 表示時に句点で改行するために使用
  */
 function toLines(text: string): string[] {
-  return text.split('。').filter(s => s.trim().length > 0)
+  return text.split('。').filter(s => s.trim().length > 0);
 }
 
 /** 表示用：各回答を句点で分割した行配列を持つ */
 const faqItemsWithLines = computed(() =>
   faqItems.map(item => ({ ...item, lines: toLines(item.answer) }))
-)
+);
 </script>
 
 <template>

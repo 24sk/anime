@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { useAnonSession } from '~/composables/useAnonSession'
+import { useAnonSession } from '~/composables/useAnonSession';
 
-const generationStore = useGenerationStore()
-const router = useRouter()
-const toast = useToast()
-const { getAnonSessionId } = useAnonSession()
+const generationStore = useGenerationStore();
+const router = useRouter();
+const toast = useToast();
+const { getAnonSessionId } = useAnonSession();
 
-const isGenerating = ref(false)
+const isGenerating = ref(false);
 
 const canGenerate = computed(() => {
-  return generationStore.imageFile !== null && generationStore.selectedStyle !== null
-})
+  return generationStore.imageFile !== null && generationStore.selectedStyle !== null;
+});
 
 /**
  * 画像をVercel Blobにアップロードする
@@ -19,10 +19,10 @@ const canGenerate = computed(() => {
  * @returns {Promise<string>} アップロードされた画像のURL
  */
 const uploadImageToBlob = async (imageFile: File): Promise<string> => {
-  const contentType = imageFile.type || 'image/jpeg'
+  const contentType = imageFile.type || 'image/jpeg';
 
   // FileをArrayBufferに変換（$fetchがFileをJSON化しないようにする）
-  const arrayBuffer = await imageFile.arrayBuffer()
+  const arrayBuffer = await imageFile.arrayBuffer();
 
   // サーバーにバイナリを送信。presign APIは受け取ったbodyをそのままBlobにputし、{ url, pathname, ... } を返す
   const blob = await $fetch<{ url: string }>('/api/upload/presign', {
@@ -32,13 +32,13 @@ const uploadImageToBlob = async (imageFile: File): Promise<string> => {
     headers: {
       'Content-Type': contentType
     }
-  })
+  });
 
   if (!blob?.url) {
-    throw new Error('アップロード後のURLを取得できませんでした')
+    throw new Error('アップロード後のURLを取得できませんでした');
   }
-  return blob.url
-}
+  return blob.url;
+};
 
 /**
  * 画像生成APIを呼び出す
@@ -51,25 +51,25 @@ const callGenerateAPI = async (
   anonSessionId: string,
   sourceImageUrl: string,
   styleType: string
-): Promise<{ job_id: string, status: string }> => {
-  const response = await $fetch<{ job_id: string, status: string }>('/api/generate', {
+): Promise<{ job_id: string; status: string }> => {
+  const response = await $fetch<{ job_id: string; status: string }>('/api/generate', {
     method: 'POST',
     body: {
       anon_session_id: anonSessionId,
       source_image_url: sourceImageUrl,
       style_type: styleType
     }
-  })
+  });
 
-  return response
-}
+  return response;
+};
 
 /**
  * 画像生成処理を開始する
  */
 const handleGenerate = async () => {
   if (!canGenerate.value || isGenerating.value) {
-    return
+    return;
   }
 
   if (!generationStore.imageFile || !generationStore.selectedStyle) {
@@ -77,37 +77,37 @@ const handleGenerate = async () => {
       title: 'エラー',
       description: '画像とスタイルを選択してください。',
       color: 'error'
-    })
-    return
+    });
+    return;
   }
 
   try {
-    isGenerating.value = true
-    generationStore.setStatus('generating')
+    isGenerating.value = true;
+    generationStore.setStatus('generating');
 
     // 匿名セッションIDを取得
-    const anonSessionId = getAnonSessionId()
+    const anonSessionId = getAnonSessionId();
 
     // 画像をVercel Blobにアップロード
-    const sourceImageUrl = await uploadImageToBlob(generationStore.imageFile)
+    const sourceImageUrl = await uploadImageToBlob(generationStore.imageFile);
 
     // 画像生成APIを呼び出し
-    const { job_id } = await callGenerateAPI(anonSessionId, sourceImageUrl, generationStore.selectedStyle)
+    const { job_id } = await callGenerateAPI(anonSessionId, sourceImageUrl, generationStore.selectedStyle);
 
     // ジョブIDをストアに保存
-    generationStore.setJobId(job_id)
+    generationStore.setJobId(job_id);
 
     // 生成中画面へ遷移
-    await router.push('/generating')
+    await router.push('/generating');
   } catch (error) {
-    console.error('生成エラー:', error)
+    console.error('生成エラー:', error);
 
     // エラーメッセージを取得
-    let errorMessage = '画像の生成に失敗しました。もう一度お試しください。'
+    let errorMessage = '画像の生成に失敗しました。もう一度お試しください。';
     if (error && typeof error === 'object' && 'data' in error) {
-      const errorData = error.data as { message?: string }
+      const errorData = error.data as { message?: string };
       if (errorData?.message) {
-        errorMessage = errorData.message
+        errorMessage = errorData.message;
       }
     }
 
@@ -115,12 +115,12 @@ const handleGenerate = async () => {
       title: 'エラーが発生しました',
       description: errorMessage,
       color: 'error'
-    })
-    generationStore.setStatus('error')
+    });
+    generationStore.setStatus('error');
   } finally {
-    isGenerating.value = false
+    isGenerating.value = false;
   }
-}
+};
 </script>
 
 <template>

@@ -20,60 +20,60 @@ export const useGenerationStore = defineStore('generation', {
 
   getters: {
     canGenerate: (state) => {
-      return state.imageFile !== null && state.selectedStyle !== null
+      return state.imageFile !== null && state.selectedStyle !== null;
     }
   },
 
   actions: {
     setImageFile(file: File | null) {
-      this.imageFile = file
+      this.imageFile = file;
       if (file) {
         // プレビュー画像の生成
-        const reader = new FileReader()
+        const reader = new FileReader();
         reader.onload = (e) => {
-          this.imagePreview = e.target?.result as string
-        }
-        reader.readAsDataURL(file)
+          this.imagePreview = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
       } else {
-        this.imagePreview = null
+        this.imagePreview = null;
       }
     },
 
     setSelectedStyle(style: string | null) {
-      this.selectedStyle = style
+      this.selectedStyle = style;
     },
 
     setFreeText(text: string) {
-      this.freeText = text
+      this.freeText = text;
     },
 
     setJobId(jobId: string | null) {
-      this.jobId = jobId
+      this.jobId = jobId;
     },
 
     setStatus(status: 'idle' | 'generating' | 'completed' | 'error') {
-      this.status = status
+      this.status = status;
     },
 
     /** 生成失敗時のユーザー向けメッセージを保存（Realtime通知で設定） */
     setErrorMessage(message: string | null) {
-      this.errorMessage = message
+      this.errorMessage = message;
     },
 
     /** 生成完了時の結果画像URLを保存（Realtime通知で設定） */
     setResultImageUrl(url: string | null) {
-      this.resultImageUrl = url
+      this.resultImageUrl = url;
     },
 
     reset() {
-      this.imageFile = null
-      this.imagePreview = null
-      this.selectedStyle = null
-      this.freeText = ''
-      this.jobId = null
-      this.status = 'idle'
-      this.errorMessage = null
-      this.resultImageUrl = null
+      this.imageFile = null;
+      this.imagePreview = null;
+      this.selectedStyle = null;
+      this.freeText = '';
+      this.jobId = null;
+      this.status = 'idle';
+      this.errorMessage = null;
+      this.resultImageUrl = null;
     }
   }
-})
+});

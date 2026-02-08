@@ -1,68 +1,68 @@
 <script setup lang="ts">
-import { useAnonSession } from '~/composables/useAnonSession'
+import { useAnonSession } from '~/composables/useAnonSession';
 
-const generationStore = useGenerationStore()
-const router = useRouter()
-const toast = useToast()
+const generationStore = useGenerationStore();
+const router = useRouter();
+const toast = useToast();
 
 /** トップへ戻る（もう一度作る） */
 function goHome() {
-  generationStore.reset()
-  router.push('/')
+  generationStore.reset();
+  router.push('/');
 }
 
 /** 画像をダウンロード */
 async function downloadImage() {
-  if (!generationStore.resultImageUrl) return
+  if (!generationStore.resultImageUrl) return;
 
   try {
-    const response = await fetch(generationStore.resultImageUrl)
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `anime-pet-${Date.now()}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
+    const response = await fetch(generationStore.resultImageUrl);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `anime-pet-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
 
     toast.add({
       title: 'ダウンロード完了',
       description: '画像を保存しました',
       icon: 'i-heroicons-check-circle',
       color: 'success'
-    })
+    });
   } catch (error) {
-    console.error('Download failed', error)
+    console.error('Download failed', error);
     toast.add({
       title: 'ダウンロード失敗',
       description: '画像の保存に失敗しました',
       icon: 'i-heroicons-exclamation-circle',
       color: 'error'
-    })
+    });
   }
 }
 
 /** X (Twitter) でシェア */
 function shareOnTwitter() {
-  const text = encodeURIComponent('うちのペットがアニメキャラになったよ！\n\n')
-  const hashtags = encodeURIComponent('AniMe,AI画像生成,ペット')
-  const url = encodeURIComponent(window.location.origin) // 本番環境のURLに置き換えるべき
+  const text = encodeURIComponent('うちのペットがアニメキャラになったよ！\n\n');
+  const hashtags = encodeURIComponent('AniMe,AI画像生成,ペット');
+  const url = encodeURIComponent(window.location.origin); // 本番環境のURLに置き換えるべき
 
   window.open(
     `https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`,
     '_blank'
-  )
+  );
 }
 
 /** フィードバック送信 */
 async function sendFeedback(type: 'good' | 'bad') {
-  if (!generationStore.jobId) return
+  if (!generationStore.jobId) return;
 
   try {
-    const { getAnonSessionId } = useAnonSession()
-    const anonSessionId = getAnonSessionId()
+    const { getAnonSessionId } = useAnonSession();
+    const anonSessionId = getAnonSessionId();
 
     await $fetch('/api/feedback', {
       method: 'POST',
@@ -73,22 +73,22 @@ async function sendFeedback(type: 'good' | 'bad') {
         selected_style: generationStore.selectedStyle,
         free_text: generationStore.freeText
       }
-    })
+    });
 
     toast.add({
       title: 'ありがとう！',
       description: 'フィードバックを受け付けました',
       icon: 'i-heroicons-hand-thumb-up',
       color: 'primary'
-    })
+    });
   } catch (error) {
-    console.error('Feedback failed', error)
+    console.error('Feedback failed', error);
     toast.add({
       title: 'エラー',
       description: 'フィードバックの送信に失敗しました',
       icon: 'i-heroicons-exclamation-circle',
       color: 'error'
-    })
+    });
   }
 }
 
@@ -96,10 +96,10 @@ onMounted(() => {
   if (!generationStore.jobId || generationStore.status !== 'completed') {
     // 開発時のプレビュー用：jobIdがなくても画像があれば表示（デバッグ用）
     if (!generationStore.resultImageUrl) {
-      router.replace('/')
+      router.replace('/');
     }
   }
-})
+});
 </script>
 
 <template>

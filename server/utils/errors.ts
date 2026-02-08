@@ -1,4 +1,4 @@
-import type { H3Error } from 'h3'
+import type { H3Error } from 'h3';
 
 /**
  * エラーコード定義
@@ -11,12 +11,12 @@ export const ErrorCodes = {
   CONTENT_POLICY_VIOLATION: 'CONTENT_POLICY_VIOLATION',
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
   AI_SERVICE_UNAVAILABLE: 'AI_SERVICE_UNAVAILABLE'
-} as const
+} as const;
 
 /**
  * エラーコードの型
  */
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes]
+export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
 
 /**
  * エラーレスポンスを生成する
@@ -37,7 +37,7 @@ export function createErrorResponse(
       code: errorCode,
       message
     }
-  })
+  });
 }
 
 /**
@@ -50,7 +50,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCodes.CONTENT_POLICY_VIOLATION]: 'AIの安全ポリシーにより生成できませんでした。別の写真でお試しください。',
   [ErrorCodes.INTERNAL_SERVER_ERROR]: '予期せぬエラーが発生しました。時間を置いてやり直してください。',
   [ErrorCodes.AI_SERVICE_UNAVAILABLE]: 'AIサーバーが一時的に混み合っています。時間を置いてやり直してください。'
-}
+};
 
 /**
  * 画像生成バックグラウンド処理で発生したエラーをユーザー向けメッセージに変換する
@@ -60,22 +60,22 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
  * @returns {string} ユーザーに表示するメッセージ
  */
 export function getUserFacingMessageForGenerationError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error)
+  const message = error instanceof Error ? error.message : String(error);
 
   // Gemini API の 429 Too Many Requests / クォータ超過
   if (message.includes('429') || message.includes('quota') || message.includes('Quota exceeded')) {
-    return ERROR_MESSAGES[ErrorCodes.AI_SERVICE_UNAVAILABLE]
+    return ERROR_MESSAGES[ErrorCodes.AI_SERVICE_UNAVAILABLE];
   }
 
   // セーフティフィルタ・コンテンツポリシー（422 相当）
   if (
-    message.includes('SAFETY') ||
-    message.includes('blocked') ||
-    message.includes('policy') ||
-    message.includes('Content policy')
+    message.includes('SAFETY')
+    || message.includes('blocked')
+    || message.includes('policy')
+    || message.includes('Content policy')
   ) {
-    return ERROR_MESSAGES[ErrorCodes.CONTENT_POLICY_VIOLATION]
+    return ERROR_MESSAGES[ErrorCodes.CONTENT_POLICY_VIOLATION];
   }
 
-  return ERROR_MESSAGES[ErrorCodes.INTERNAL_SERVER_ERROR]
+  return ERROR_MESSAGES[ErrorCodes.INTERNAL_SERVER_ERROR];
 }
