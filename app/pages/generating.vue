@@ -6,7 +6,13 @@
 <script setup lang="ts">
 const generationStore = useGenerationStore()
 const router = useRouter()
+const route = useRoute()
 const supabase = useSupabase()
+
+/** 開発時のみ: 画面表示確認用プレビューモード（?preview=1 でリダイレクト・APIをスキップ） */
+const isPreviewMode
+  = import.meta.dev
+    && route.query.preview === '1'
 
 useHead({
   title: '生成中 - AniMe'
@@ -99,10 +105,27 @@ async function fetchJobStatus(jobId: string): Promise<boolean> {
 }
 
 onMounted(() => {
-  const jobId = generationStore.jobId
-  if (!jobId) {
-    router.replace('/')
+  // 開発時プレビュー: エラー表示を確認する（?preview=1&error=1）
+  if (isPreviewMode && route.query.error === '1') {
+    generationStore.setStatus('error')
+    generationStore.setErrorMessage('プレビュー用のエラーメッセージです。')
     return
+  }
+
+  // 通常時は jobId が無ければホームへリダイレクト
+  let jobId = generationStore.jobId
+  /** プレビューで表示のみ確認している場合（Realtime・ポーリングをスキップ） */
+  let previewDisplayOnly = false
+  if (!jobId) {
+    if (isPreviewMode) {
+      jobId = '00000000-0000-0000-0000-000000000000'
+      generationStore.setJobId(jobId)
+      generationStore.setStatus('generating')
+      previewDisplayOnly = true
+    } else {
+      router.replace('/')
+      return
+    }
   }
 
   startedAt.value = Date.now()
@@ -123,52 +146,55 @@ onMounted(() => {
     statusMessage.value = pickRandomMessage()
   }, 2500)
 
-  // Supabase Realtime: generation_jobs の当該ジョブを購読し、完了を検知
-  realtimeChannel = supabase
-    .channel(`job:${jobId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'generation_jobs',
-        filter: `id=eq.${jobId}`
-      },
-      (payload) => {
-        const row = payload.new as {
-          status?: string
-          result_image_url?: string | null
-          error_message?: string | null
-        }
-        if (row.status === 'completed') {
-          generationStore.setStatus('completed')
-          generationStore.setResultImageUrl(row.result_image_url ?? null)
-          progress.value = 100
-          if (!navigateCheckTimerId) {
-            navigateCheckTimerId = setInterval(tryNavigateToResult, 500)
+  // プレビュー表示のみの場合は Realtime・ポーリングは行わない
+  if (!previewDisplayOnly) {
+    // Supabase Realtime: generation_jobs の当該ジョブを購読し、完了を検知
+    realtimeChannel = supabase
+      .channel(`job:${jobId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'generation_jobs',
+          filter: `id=eq.${jobId}`
+        },
+        (payload) => {
+          const row = payload.new as {
+            status?: string
+            result_image_url?: string | null
+            error_message?: string | null
+          }
+          if (row.status === 'completed') {
+            generationStore.setStatus('completed')
+            generationStore.setResultImageUrl(row.result_image_url ?? null)
+            progress.value = 100
+            if (!navigateCheckTimerId) {
+              navigateCheckTimerId = setInterval(tryNavigateToResult, 500)
+            }
+          }
+          if (row.status === 'failed') {
+            generationStore.setStatus('error')
+            // バックエンドが保存したユーザー向けメッセージを表示（未設定時は既定文言）
+            generationStore.setErrorMessage(
+              row.error_message?.trim() || '生成に失敗しました。もう一度やり直してください。'
+            )
           }
         }
-        if (row.status === 'failed') {
-          generationStore.setStatus('error')
-          // バックエンドが保存したユーザー向けメッセージを表示（未設定時は既定文言）
-          generationStore.setErrorMessage(
-            row.error_message?.trim() || '生成に失敗しました。もう一度やり直してください。'
-          )
-        }
-      }
-    )
-    .subscribe()
+      )
+      .subscribe()
 
-  // ポーリング: Realtime が届かない環境でも完了・失敗を検知する（約2.5秒ごと）
-  const POLL_INTERVAL_MS = 2500
-  pollIntervalId = setInterval(async () => {
-    if (generationStore.status !== 'generating' && generationStore.status !== 'idle') return
-    const done = await fetchJobStatus(jobId)
-    if (done && pollIntervalId) {
-      clearInterval(pollIntervalId)
-      pollIntervalId = null
-    }
-  }, POLL_INTERVAL_MS)
+    // ポーリング: Realtime が届かない環境でも完了・失敗を検知する（約2.5秒ごと）
+    const POLL_INTERVAL_MS = 2500
+    pollIntervalId = setInterval(async () => {
+      if (generationStore.status !== 'generating' && generationStore.status !== 'idle') return
+      const done = await fetchJobStatus(jobId)
+      if (done && pollIntervalId) {
+        clearInterval(pollIntervalId)
+        pollIntervalId = null
+      }
+    }, POLL_INTERVAL_MS)
+  }
 })
 
 onUnmounted(() => {
@@ -185,9 +211,6 @@ onUnmounted(() => {
 
 <template>
   <div class="relative min-h-[60vh] py-8">
-    <!-- 足跡が歩き回る背景アニメーション（ブランドイメージのローディング演出） -->
-    <FootprintBackground />
-
     <div class="relative z-10 mx-auto max-w-lg space-y-8">
       <!-- 生成失敗時: エラーメッセージとやり直しリンク -->
       <template v-if="generationStore.status === 'error'">
@@ -221,13 +244,13 @@ onUnmounted(() => {
         </div>
 
         <!-- プログレスバーとステータスメッセージ -->
-        <PagesGeneratingGeneratingProgress
+        <GeneratingProgress
           :progress="progress"
           :status-message="statusMessage"
         />
 
         <!-- メイン広告エリア（画面中央の最も目立つ位置） -->
-        <PagesGeneratingGeneratingAdArea />
+        <GeneratingAdArea />
       </template>
     </div>
 

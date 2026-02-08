@@ -2,7 +2,8 @@
 description: コンポーネント定義
 globs:
   - "**/*.vue"
-alwaysApply: true
+  - "app/components"
+alwaysApply: false
 ---
 # コンポーネントガイダンス作成ルール
 
@@ -64,3 +65,12 @@ alwaysApply: true
 - 古い情報や記憶に頼らず、常にMCP経由で最新の情報を取得すること
 - プロジェクトで使用しているNuxtUIのバージョン（v4.3.0）に合致する情報を参照すること
 - 不明点がある場合は、複数のMCPリソースを参照して情報を補完すること
+
+## 3. コンポーネント名（テンプレートでの使用名）の確認
+
+### 必須確認
+
+- **テンプレートでコンポーネントを参照する際は、必ず `nuxt.config.ts` の `components` 設定を確認すること**
+- `pathPrefix: false` の場合は**ファイル名のみ**（PascalCase）で登録される（例：`GeneratingProgress`、`GeneratingAdArea`）
+- `pathPrefix: true`（デフォルト）の場合は**パス付き**で登録される（例：`PagesGeneratingGeneratingProgress`）
+- デフォルトのNuxt挙動で判断せず、**このプロジェクトの設定に基づいて**正しいタグ名を使用すること

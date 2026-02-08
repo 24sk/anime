@@ -7,16 +7,16 @@ import { styleTypes } from '~~/shared/types/style'
  */
 export function getPetAnalysisPrompt(): string {
   return `
-あなたはペットの特徴を分析する専門家です。
-アップロードされたペットの写真から、以下の情報を抽出してください：
+You are an expert at analyzing pet images.
+Please extract the following information from the uploaded pet photo:
 
-1. 種類: 犬、猫、その他のペットの種類
-2. 毛色・模様: 具体的な色や模様の特徴
-3. 装飾品: 首輪、リボン、バンダナなどの装飾品の有無と特徴
-4. 表情・ポーズ: 特徴的な表情やポーズ
+1. Breed: Dog, Cat, or specific breed if identifiable.
+2. Color/Pattern: Specific fur colors and patterns.
+3. Accessories: Presence and description of collars, ribbons, clothes, etc.
+4. Expression/Pose: Distinctive expression or pose.
 
-抽出した情報は、30代の飼い主が「うちの子」を表現するために使える、温かみのある日本語で記述してください。
-例：「茶色と白のまだら模様の柴犬。首に赤い首輪をしています。優しい目をしており、少し首をかしげたポーズです。」
+Output the description in English, focusing on visual traits suitable for image generation prompts.
+Example: "A Shiba Inu with brown and white fur. Wearing a red collar. Has a gentle expression and is tilting its head slightly."
 `
 }
 
@@ -31,16 +31,16 @@ export function getImageGenerationPrompt(
   petDescription: string
 ): string {
   const stylePrompts: Record<StyleType, string> = {
-    '3d-anime': 'Transform this pet into a 3D Pixar-style animated character. High detail, soft fur, expressive eyes.',
-    'watercolor': 'Create a soft watercolor painting of this pet. Artistic splashes, pastel colors, white background.',
-    'fluffy': 'A cute, hand-drawn fluffy illustration. Warm and cozy vibes, simple lines.',
-    'cyberpunk': 'Cool cyberpunk pet icon. Neon lights, futuristic accessories, vibrant glowing colors.',
-    'korean-style': 'Create a modern Korean-style pet icon. Vibrant colors, smooth gradients, cute and charming design, popular K-pop aesthetic.',
-    'simple-illustration': 'Create a simple, minimalist pet icon. Clean lines, solid colors, white or transparent background, modern and versatile.'
+    '3d-anime': '3D Pixar-style animated character, cute, adorable, high detail, soft fur, expressive eyes, Disney style, render, 8k, masterpiece.',
+    'watercolor': 'Soft watercolor painting, artistic splashes, pastel colors, white background, dreamy, wet-on-wet technique, high quality.',
+    'fluffy': 'Cute hand-drawn illustration, fluffy texture, soft lines, pastel colors, warm and cozy vibes, storybook style, adorable.',
+    'cyberpunk': 'Cyberpunk pet icon, neon lights, futuristic accessories, vibrant glowing colors, high contrast, sci-fi aesthetic, cool.',
+    'korean-style': 'Modern Korean-style pet icon, flat design, vibrant soft colors, simple but cute, charms, stickers, app icon style.',
+    'simple-illustration': 'Simple minimalist pet icon, clean lines, flat color, vector art, white background, modern, logo style.'
   }
 
   // styleTypeが有効な値でない場合は、デフォルトのsimple-illustrationを使用
   const stylePrompt = stylePrompts[styleType] || stylePrompts[styleTypes[styleTypes.length - 1]]
 
-  return `${stylePrompt} Based on: ${petDescription}`
+  return `${stylePrompt} Subject: ${petDescription}`
 }

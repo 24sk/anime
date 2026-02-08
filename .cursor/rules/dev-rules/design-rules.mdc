@@ -1,0 +1,181 @@
+---
+description: AniMe プロダクトデザインルール（ブランド・カラー・タイポグラフィ・トーン）
+globs:
+  - "**/*.vue"
+  - "**/*.css"
+  - "**/tailwind.config.*"
+  - "**/app.config.ts"
+alwaysApply: false
+---
+
+# AniMe プロダクトデザインルール
+
+まず、このファイルを参照したら、このファイル名を発言してください。
+
+本ルールは **AniMe（アニミー）** のビジュアル・体験の一貫性を保つためのデザイン指針です。実装時のUIコンポーネントやマークアップ規約は `ui-ux.mdc`、コンポーネント配置は `component-guide.mdc` を参照すること。
+
+---
+
+## 1. ブランド・プロダクトアイデンティティ
+
+### サービス定義
+
+- **サービス名:** AniMe（アニミー）
+- **コンセプト:** 「うちの子」を世界に一つだけのデジタルアートへ
+- **主な価値:** ペット写真をAIでアイコン化し、SNSで使える可愛いイラストを手軽に提供する
+
+### デザインの方向性
+
+- **親しみやすさ:** ペットを愛するユーザーに寄り添う、温かみのあるトーン
+- **ワクワク感:** 生成前・生成中・結果の各段階で「楽しみ」が伝わる表現
+- **信頼感:** 操作が分かりやすく、結果が予測しやすいUI
+- **過度に子供っぽくしない:** 30代を中心としたターゲットに合わせ、上品さを保つ
+
+### トーン＆マナー
+
+- コピー・メッセージは**優しく・簡潔に**（例：「可愛い写真を選んでね」「魔法をかけています...」）
+- エラー時も**責めない表現**（例：「別の写真でお試しください」）
+- 専門用語を避け、誰でも理解できる言葉を使う
+
+---
+
+## 2. カラーシステム
+
+カラー定義は **`app/assets/css/main.css`** の `@theme` で管理する。変更時はこのファイルと本ルールを同期させること。
+
+### プライマリ（primary）
+
+- **役割:** メインCTA（生成ボタン等）、選択状態、リンク、ブランドの強調
+- **イメージ:** コーラルピンク〜サーモン系。可愛さと温かみを表現
+- **参照:** `primary`（NuxtUI の `color="primary"` で使用）
+- **基準色:** `--color-primary-500`（例: #FF7F7F）を中心に 50〜950 のスケールを使用
+- **使用例:** 生成ボタン、スタイル選択のアクティブ状態、プログレスバー
+
+### ブランド・ニュートラル（brand）
+
+- **役割:** ロゴ周り、本文・見出し、背景のニュートラル
+- **イメージ:** スレート系グレー。読みやすさと落ち着き
+- **参照:** `brand`（`app.config.ts` で `secondary: 'brand'` として登録）
+- **基準色:** `--color-brand-600` 付近をロゴ・強調テキストに使用
+- **使用例:** ヘッダーロゴ、説明文、カードの枠線
+
+### セマンティックカラー
+
+- **success:** 完了・成功（例: 生成完了表示）
+- **warning:** 注意・待機（例: 広告視聴中の説明）
+- **error:** エラー・失敗（例: 生成失敗アラート）
+- NuxtUI のデフォルトセマンティックを尊重し、必要時のみ `main.css` でオーバーライドすること
+
+### カラーのルール
+
+- 新規で**独自の色名（例: coral, salmon）を増やさない**。primary / brand および NuxtUI のセマンティックで表現すること
+- ダークモードは NuxtUI の `UColorMode` に任せ、同一トークンで自動切り替えされる前提とする
+
+---
+
+## 3. タイポグラフィ
+
+### フォント
+
+- **本文・UI全般:** `--font-sans` → **Noto Sans JP**（`main.css` で定義）
+- **ブランド・ロゴ・キャッチ:** `--font-brand` → **Quicksand**（`main.css` で定義）
+- フォント読み込みは `@nuxtjs/google-fonts` 等で行い、`main.css` の変数のみ変更する
+
+### 使い分け
+
+- 画面タイトル・キャッチコピー: `font-brand` を必要に応じて使用（過度に使わない）
+- 説明文・ラベル・ボタン: `font-sans`（Noto Sans JP）を標準とする
+- フォントサイズ・行間は **Tailwind のタイポグラフィユーティリティ**（`text-sm`, `text-base`, `leading-relaxed` 等）で統一する
+
+### タイポグラフィのルール
+
+- **新規フォントの追加は禁止**（デザイン承認なし）。Noto Sans JP / Quicksand のウェイト（例: 400, 600, 700）で表現すること
+
+---
+
+## 4. スペーシング・レイアウト
+
+- **Tailwind のスペーシングスケール**（`p-4`, `gap-6`, `mt-8` 等）を標準とする
+- **8px ベース**の Tailwind デフォルトを崩さない（例: 独自の `spacing.13` を増やさない）
+- コンテンツ幅は **NuxtUI の `UContainer`** で統一し、最大幅は NuxtUI のデフォルトに従う
+- レスポンシブは **モバイルファースト**。ブレークポイントは `ui-ux.mdc` のとおり（sm: 640px, md: 768px, lg: 1024px, xl: 1280px, 2xl: 1536px）
+
+## 5. アイコン・イラスト
+
+- **アイコン:** `@nuxt/icon` を標準とし、**lucide** コレクションを優先する（`ui-ux.mdc` に準拠）
+- **トーン:** 線の太さ・スタイルは統一し、可愛らしさより**分かりやすさ**を優先する
+- **画像:** ユーザーアップロード写真・生成結果は `NuxtImg` で最適化し、alt / width / height を必ず指定する（`ui-ux.mdc` に準拠）
+- 生成スタイル（3Dアニメ、水彩画等）の**プレビュー用イラスト**を追加する場合は、既存の primary / brand トーンに合わせること
+
+---
+
+## 6. モーション・フィードバック
+
+- **過度なアニメーションを避ける**（`ui-ux.mdc` に準拠）
+- 許可する範囲の例:
+  - プログレスバーの進行アニメーション
+  - 生成中画面の「足跡が歩く」等の**控えめな待機演出**
+  - ページ遷移のフェード等、**短く軽い**トランジション
+- 禁止する例: 派手なパーティクル、長時間のループアニメ、読み込みを阻害する重い演出
+
+---
+
+## 7. アクセシビリティ・品質
+
+- **コントラスト:** 本文と背景は WCAG 2.1 を満たすコントラスト比を確保する
+- **フォーカス:** キーボード操作時は NuxtUI のフォーカスリングを隠さない
+- **スクリーンリーダー:** アイコンや画像には `aria-label` または `alt` を適切に付与する（`ui-ux.mdc` に準拠）
+
+---
+
+## 8. 外部ガイドラインとの関係
+
+- **BELTAデザインガイドライン** が別途存在する場合、本ルールと矛盾する部分は **BELTA を優先**し、本ファイルに「BELTA 準拠のため〇〇とする」と追記すること
+- **NuxtUI** のデザインシステムを最優先とする。カラー・タイポグラフィは `main.css` の `@theme` で NuxtUI に渡し、コンポーネントは NuxtUI の props（color, variant 等）で制御すること
+
+---
+
+## 9. 禁止事項・変更の原則
+
+- **既存の UI の色・フォント・余白の変更は承認なしで行わない**（`ui-ux.mdc` と同様）
+- **デザイントークン（main.css の `@theme`）の変更**は、本ルールと `ui-ux.mdc` を更新した上で行うこと
+- 新規画面・コンポーネントを追加する際は、本ルールの「カラー」「タイポグラフィ」「スペーシング」に従い、**既存画面との一貫性**を確認すること
+
+---
+
+## 10. 本プロダクトで使用している NuxtUI コンポーネント一覧
+
+実装を確認した上で、現在利用している NuxtUI コンポーネントを列挙する。新規で NuxtUI コンポーネントを追加する場合は、本一覧と `docs/features/ui-features.md` の Nuxt UI コンポーネント対応表を更新すること。
+
+| コンポーネント | 主な使用箇所 | 用途 |
+| --- | --- | --- |
+| `UApp` | `app/app.vue` | アプリ全体のラッパー |
+| `UAlert` | `app/pages/generating.vue` | 生成失敗時のエラーメッセージ表示 |
+| `UButton` | `app/pages/generating.vue`, `app/pages/result.vue`, `app/pages/index.vue`, `app/layouts/default.vue`, `app/components/pages/home/StyleSelector.vue`, `app/components/TemplateMenu.vue` | CTA・モーダル閉じる・スタイル選択・メニュー |
+| `UCard` | `app/components/pages/generating/GeneratingAdArea.vue` | 生成中画面の広告エリア枠 |
+| `UColorModeButton` | `app/layouts/default.vue` | ダークモード切り替え |
+| `UContainer` | `app/layouts/default.vue` | メインコンテンツの最大幅・中央配置 |
+| `UDropdownMenu` | `app/components/TemplateMenu.vue` | テンプレートメニュー（ドロップダウン） |
+| `UFileUpload` | `app/components/pages/home/ImageUploadArea.vue` | ペット写真のアップロード・プレビュー |
+| `UHeader` | `app/layouts/default.vue` | ヘッダー（ロゴ・使い方・カラーモード） |
+| `UIcon` | `app/components/pages/home/StyleSelector.vue` | スタイル選択肢のアイコン表示 |
+| `UMain` | `app/layouts/default.vue` | メインコンテンツエリア |
+| `UModal` | `app/layouts/default.vue` | 使い方ガイドのモーダル |
+| `UProgress` | `app/components/pages/generating/GeneratingProgress.vue` | 生成進捗のプログレスバー |
+| `UTextarea` | `app/pages/index.vue` | フリーテキスト入力（ペットの特徴・要望） |
+
+※ 画像表示は現状 `img` や Blob URL を直接参照している箇所がある。新規実装では `@nuxt/image` の `NuxtImg` 使用を検討すること（`ui-ux.mdc`・`docs/features/ui-features.md` に準拠）。
+
+---
+
+## 11. 参照ファイル一覧
+
+| 役割 | ファイル |
+| --- | --- |
+| カラー・フォント定義 | `app/assets/css/main.css` |
+| NuxtUI 色の割り当て | `app/app.config.ts` |
+| UI実装・コンポーネント規約 | `.cursor/rules/dev-rules/ui-ux.mdc` |
+| コンポーネント配置 | `.cursor/rules/dev-rules/component-guide.mdc` |
+| 画面・UI機能詳細 | `docs/features/ui-features.md` |
+
+以上に従い、AniMe のデザイン一貫性を保つこと。

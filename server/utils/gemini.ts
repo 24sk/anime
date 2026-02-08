@@ -76,6 +76,8 @@ export async function generateImageWithImagen(
     } as Record<string, unknown>
   })
 
+  console.log('prompt', prompt)
+
   // 元画像の特徴をより反映させるため、画像データも一緒に送信
   const imageData = await fetchImageAsBase64(sourceImageUrl)
 
