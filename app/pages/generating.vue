@@ -8,6 +8,7 @@ const generationStore = useGenerationStore();
 const router = useRouter();
 const route = useRoute();
 const supabase = useSupabase();
+const toast = useToast();
 
 /** 開発時のみ: 画面表示確認用プレビューモード（?preview=1 でリダイレクト・APIをスキップ） */
 const isPreviewMode
@@ -21,33 +22,57 @@ const MIN_WAIT_MS = 10_000;
 
 /** 進捗シミュレーション 0〜100。実際のAPI進捗ではなく演出用 */
 const progress = ref(0);
-/** ランダムに切り替えるステータスメッセージ */
-const statusMessage = ref('準備しています...');
 
-/** ステータスメッセージの候補（仕様に沿った文言） */
-const STATUS_MESSAGES = [
-  '毛並みを整えています...',
-  '魔法をかけています...',
-  'お顔をかわいくしています...',
-  '色を塗っています...',
-  '仕上げ中です...',
-  'もう少しお待ちください...'
-] as const;
+/**
+ * 進捗（0〜100）に応じたステータスメッセージの定義
+ * 画像変換の流れに沿って順に表示し、ユーザーに正確な進捗感を伝える
+ */
+const PROGRESS_MESSAGES: { max: number; message: string }[] = [
+  { max: 15, message: '準備しています...' },
+  { max: 30, message: '毛並みを整えています...' },
+  { max: 50, message: '魔法をかけています...' },
+  { max: 65, message: 'お顔をかわいくしています...' },
+  { max: 80, message: '色を塗っています...' },
+  { max: 95, message: '仕上げ中です...' },
+  { max: 100, message: 'もう少しお待ちください...' }
+];
 
-/** ランダムで次のメッセージを返す */
-function pickRandomMessage(): string {
-  const i = Math.floor(Math.random() * STATUS_MESSAGES.length);
-  return STATUS_MESSAGES[i] ?? STATUS_MESSAGES[0];
+/**
+ * 現在の進捗値に応じたステータスメッセージを返す
+ * @param p - 進捗（0〜100）
+ * @returns 表示するメッセージ
+ */
+function getMessageForProgress(p: number): string {
+  const entry = PROGRESS_MESSAGES.find(e => p <= e.max);
+  return entry?.message ?? PROGRESS_MESSAGES[PROGRESS_MESSAGES.length - 1]!.message;
 }
+
+/** 進捗に応じてステータスメッセージを切り替える（computed で常に同期） */
+const statusMessage = computed(() => getMessageForProgress(progress.value));
 
 /** ページ表示開始時刻。最低待機時間の計算に使用 */
 const startedAt = ref(0);
 /** クリーンアップ用：タイマーID・Realtimeチャンネル・ポーリング用 */
 const progressIntervalId = ref<ReturnType<typeof setInterval> | null>(null);
-const messageIntervalId = ref<ReturnType<typeof setInterval> | null>(null);
 let navigateCheckTimerId: ReturnType<typeof setInterval> | null = null;
 let realtimeChannel: { unsubscribe: () => void } | null = null;
 let pollIntervalId: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * 生成中・完了待ちの間は戻る・ブラウザバックを無効にする
+ * エラー時は「もう一度やり直す」で離脱できるように許可する
+ */
+onBeforeRouteLeave((_to, _from, next) => {
+  if (generationStore.status === 'generating' || generationStore.status === 'completed') {
+    toast.add({
+      title: '生成が完了するまでお待ちください',
+      color: 'warning'
+    });
+    next(false);
+    return;
+  }
+  next();
+});
 
 /** 結果画面へ遷移してよいか判定し、条件を満たしていれば遷移する */
 function tryNavigateToResult() {
@@ -138,11 +163,7 @@ onMounted(() => {
     }
   }, 180);
 
-  // ステータスメッセージを約2.5秒ごとにランダム切り替え
-  statusMessage.value = pickRandomMessage();
-  messageIntervalId.value = setInterval(() => {
-    statusMessage.value = pickRandomMessage();
-  }, 2500);
+  // ステータスメッセージは progress に連動する computed のため、ここでは何もしない
 
   // プレビュー表示のみの場合は Realtime・ポーリングは行わない
   if (!previewDisplayOnly) {
@@ -197,7 +218,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (progressIntervalId.value) clearInterval(progressIntervalId.value);
-  if (messageIntervalId.value) clearInterval(messageIntervalId.value);
   if (navigateCheckTimerId) clearInterval(navigateCheckTimerId);
   if (pollIntervalId) {
     clearInterval(pollIntervalId);
@@ -237,7 +257,10 @@ onUnmounted(() => {
             アイコンを作成しています
           </h1>
           <p class="mt-1 text-muted text-sm">
-            しばらくお待ちください
+            しばらくお待ちください<span
+              class="generating-dots"
+              aria-hidden="true"
+            ><span>.</span><span>.</span><span>.</span></span>
           </p>
         </div>
 
@@ -255,3 +278,33 @@ onUnmounted(() => {
     <!-- 最低待機時間が経過し、かつ生成完了するまで「次へ」は表示しない（自動遷移のため） -->
   </div>
 </template>
+
+<style scoped lang="scss">
+/* 三点リーダーを左から右に順に強調し、アイコン作成中であることが分かるようにする */
+.generating-dots {
+  display: inline;
+
+  span {
+    animation: generating-dot-pulse 1.2s ease-in-out infinite;
+  }
+
+  span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+}
+
+@keyframes generating-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+</style>

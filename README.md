@@ -56,6 +56,11 @@ cp .env.example .env
 | `NUXT_BLOB_READ_WRITE_TOKEN` | Vercel Blob トークン |
 | `NUXT_PUBLIC_APP_URL` | アプリの公開URL（例: `http://localhost:3000`） |
 
+#### Vercel デプロイ時
+
+- **`NUXT_PUBLIC_SUPABASE_URL`** を設定すると「NUXT_PUBLIC_ exposes this value to the browser」という警告が出ますが、**Supabase のプロジェクト URL は公開して問題ありません**（クライアントから接続するための公開情報です）。そのまま設定して構いません。
+- ビルド・generate 時には **`NUXT_PUBLIC_SUPABASE_URL`** と **`NUXT_SUPABASE_SERVICE_ROLE_KEY`** の**両方**が必要です。エラー「Supabaseの環境変数が設定されていません」が出る場合は、Vercel の Environment Variables でこの2つが設定されているか確認してください。
+
 ### 3. 開発サーバーの起動
 
 ```bash

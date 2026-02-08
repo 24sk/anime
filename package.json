@@ -32,7 +32,6 @@
     "@nuxt/eslint-config": "^1.12.1",
     "@nuxtjs/google-fonts": "^3.2.0",
     "@types/node": "^25.0.3",
-    "@types/uuid": "^11.0.0",
     "dotenv": "^17.2.4",
     "eslint": "^9.39.2",
     "prettier": "^3.7.4",
@@ -42,5 +41,11 @@
     "typescript": "^5.9.3",
     "vue-tsc": "^3.2.1"
   },
-  "packageManager": "pnpm@10.26.1"
+  "packageManager": "pnpm@10.26.1",
+  "pnpm": {
+    "overrides": {
+      "vite": "6.3.4",
+      "@types/parse-path": "npm:parse-path@7.1.0"
+    }
+  }
 }
