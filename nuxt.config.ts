@@ -6,7 +6,8 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxtjs/supabase',
     '@nuxtjs/google-fonts',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    'nuxt-driver.js'
   ],
 
   components: [

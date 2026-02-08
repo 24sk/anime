@@ -20,6 +20,7 @@
     "@pinia/nuxt": "^0.5.1",
     "@vercel/blob": "^2.0.0",
     "nuxt": "^4.2.2",
+    "nuxt-driver.js": "^0.0.24",
     "pinia": "^2.2.0",
     "uuid": "^13.0.0",
     "zod": "^4.3.4"

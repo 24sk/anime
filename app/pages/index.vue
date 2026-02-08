@@ -132,14 +132,21 @@ const handleGenerate = async () => {
     </div>
 
     <div class="mx-auto max-w-2xl space-y-6">
-      <!-- 画像アップロードエリア -->
-      <ImageUploadArea />
+      <!-- 画像アップロードエリア（使い方ガイドのターゲット） -->
+      <div id="tour-upload">
+        <ImageUploadArea />
+      </div>
 
-      <!-- スタイルセレクター -->
-      <StyleSelector />
+      <!-- スタイルセレクター（使い方ガイドのターゲット） -->
+      <div id="tour-style">
+        <StyleSelector />
+      </div>
 
-      <!-- フリーテキスト入力 -->
-      <div class="space-y-4">
+      <!-- フリーテキスト入力（使い方ガイドのターゲット） -->
+      <div
+        id="tour-freetext"
+        class="space-y-4"
+      >
         <h2 class="text-lg font-semibold">
           自由にアレンジしてみよう
         </h2>
@@ -151,8 +158,9 @@ const handleGenerate = async () => {
         />
       </div>
 
-      <!-- 生成ボタン -->
+      <!-- 生成ボタン（使い方ガイドのターゲット） -->
       <UButton
+        id="tour-generate"
         :disabled="!canGenerate"
         :loading="isGenerating"
         block

@@ -1,9 +1,42 @@
 <script setup lang="ts">
-const helpModalOpen = ref(false)
+/**
+ * デフォルトレイアウト
+ * ヘッダー（ロゴ・使い方ガイド・カラーモード）とメインコンテンツを提供する
+ */
+import { usageTourSteps } from '~/composables/useUsageTour'
+
+const route = useRoute()
+const toast = useToast()
+
+// 使い方ガイド（Driver.js）。DOM 参照のため onMounted（クライアント）で初期化
+const driverInstance = ref<ReturnType<typeof useDriver> | null>(null)
+onMounted(() => {
+  driverInstance.value = useDriver({
+    showProgress: true,
+    animate: true,
+    steps: usageTourSteps
+  })
+})
+
+/**
+ * 使い方ガイドツアーを開始する
+ * トップ画面（/）以外ではトーストで案内し、トップ画面では Driver.js のツアーを開始する
+ */
+function startUsageTour() {
+  if (route.path !== '/') {
+    toast.add({
+      title: '使い方ガイド',
+      description: 'トップページでご利用ください。',
+      color: 'neutral'
+    })
+    return
+  }
+  driverInstance.value?.drive()
+}
 </script>
 
 <template>
-  <div>
+  <div class="min-h-screen bg-gradient-to-b from-[#E0F2F1] to-primary-100">
     <UHeader>
       <template #left>
         <NuxtLink
@@ -15,68 +48,14 @@ const helpModalOpen = ref(false)
       </template>
 
       <template #right>
-        <UModal
-          v-model:open="helpModalOpen"
-          title="使い方"
-          description="AniMeの使い方をご紹介します"
-        >
-          <UButton
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-help-circle"
-            aria-label="使い方"
-            label="使い方"
-          />
-
-          <template #body>
-            <div class="space-y-4">
-              <div>
-                <h3 class="font-semibold mb-2">
-                  1. ペットの写真をアップロード
-                </h3>
-                <p class="text-sm text-muted">
-                  可愛いペットの写真を選択してください。ドラッグ&ドロップでも対応しています。
-                </p>
-              </div>
-
-              <div>
-                <h3 class="font-semibold mb-2">
-                  2. スタイルを選択
-                </h3>
-                <p class="text-sm text-muted">
-                  お好みのスタイルを選択してください。3Dアニメ、水彩画、ゆるふわ手書きなど、6種類のスタイルから選べます。
-                </p>
-              </div>
-
-              <div>
-                <h3 class="font-semibold mb-2">
-                  3. フリーテキストを入力（任意）
-                </h3>
-                <p class="text-sm text-muted">
-                  「リボンをつけて」「笑顔で」など、フリーテキストがあれば入力してください。
-                </p>
-              </div>
-
-              <div>
-                <h3 class="font-semibold mb-2">
-                  4. 生成開始
-                </h3>
-                <p class="text-sm text-muted">
-                  「生成する」ボタンをクリックすると、AIがアイコンを生成します。生成中は広告が表示されます。
-                </p>
-              </div>
-
-              <div>
-                <h3 class="font-semibold mb-2">
-                  5. ダウンロード
-                </h3>
-                <p class="text-sm text-muted">
-                  生成が完了したら、広告視聴後にダウンロードボタンが有効になります。SNSアイコンとして使えるよう、円形マスクのプレビューも確認できます。
-                </p>
-              </div>
-            </div>
-          </template>
-        </UModal>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-help-circle"
+          aria-label="使い方"
+          label="使い方"
+          @click="startUsageTour"
+        />
 
         <UColorModeButton />
       </template>
