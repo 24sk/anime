@@ -31,3 +31,10 @@
   --font-sans: "Noto Sans JP", sans-serif;
   --font-brand: "Quicksand", sans-serif;
 }
+
+/* 本文全体の行間を読みやすくする（Tailwind leading-relaxed = 1.625） */
+@layer base {
+  body {
+    @apply leading-relaxed;
+  }
+}
