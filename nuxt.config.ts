@@ -107,7 +107,7 @@ export default defineNuxtConfig({
         const defaultOnwarn = rollupConfig.onwarn;
         // Nitro の Rollup 型と互換させるため、内部で unknown として扱い最後に型アサーション
         rollupConfig.onwarn = ((warning: unknown, defaultHandler: (w: unknown) => void) => {
-          const w = warning as { code?: string; source?: string; message?: string };
+          const w = warning as { code?: string, source?: string, message?: string };
           const msg = String(w.message ?? '');
           const src = String(w.source ?? '');
           const isSupabaseUnusedImport
