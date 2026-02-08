@@ -78,6 +78,31 @@
   }
   ```
 
+### ④ フィードバック送信
+
+ユーザーからのフィードバック（Good/Bad）を受け付けます。
+
+* **Endpoint:** `POST /api/feedback`
+* **Request Body:**
+
+  ```json
+  {
+    "job_id": "string (UUID)",
+    "anon_session_id": "string (UUID)",
+    "feedback_type": "good | bad",
+    "selected_style": "string (optional)",
+    "free_text": "string (optional)"
+  }
+  ```
+
+* **Response (200 OK):**
+
+  ```json
+  {
+    "success": true
+  }
+  ```
+
 ## 3. 内部処理シーケンス
 
 ```mermaid

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAnonSession } from '~/composables/useAnonSession'
 const generationStore = useGenerationStore()
 const router = useRouter()
 const toast = useToast()
@@ -59,10 +60,14 @@ async function sendFeedback(type: 'good' | 'bad') {
   if (!generationStore.jobId) return
 
   try {
+    const { getAnonSessionId } = useAnonSession()
+    const anonSessionId = getAnonSessionId()
+
     await $fetch('/api/feedback', {
       method: 'POST',
       body: {
         job_id: generationStore.jobId,
+        anon_session_id: anonSessionId,
         feedback_type: type,
         selected_style: generationStore.selectedStyle,
         free_text: generationStore.freeText
