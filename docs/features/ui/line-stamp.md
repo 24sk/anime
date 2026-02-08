@@ -24,7 +24,7 @@
   - 単語プリセット定数: あいさつ・感謝・リアクション・応援・愛情・ごめん・フォロー（仕様 3.2.1 の初期実装分）
   - セット定数: あいさつ・感謝・リアクション・愛情・フォロー・応援、および **おすすめ8個（申請用）**（仕様 3.2.2）
   - おすすめ8個セットは UI で目立つ位置に配置
-- [ ] **文言選択 UI**
+- [x] **文言選択 UI**
   - 単語／セット（および必要に応じてカテゴリ）のタブまたは切り替え
   - プリセットをチップまたはカードで表示し、複数選択可能。セット選択で複数単語を一括選択
   - 推奨「8個セット」を目立たせ、1 クリックで申請最小構成を選択できるようにする
@@ -43,10 +43,10 @@
 - [ ] **メイン・タブ画像オプション**
   - チェックボックス「メイン画像・タブ画像もZIPに含める（LINE申請用）」
   - メイン: 240×240、`main.png`。タブ: 96×74、`tab.png`。ZIP に含める
-- [ ] **ストア・状態**
-  - 選択中の wordIds・ZIP 生成中フラグ等を `useGenerationStore` に追加するか、`useLineStampStore` で分離して実装時に決定
-- [ ] **コンポーネント配置**
-  - ページ専用: `components/pages/line-stamp/`（例: `StampPresetSelector.vue`, `StampPreviewGrid.vue`）
+- [x] **ストア・状態**
+  - 選択中の wordIds・ZIP 生成中フラグ等を `useLineStampStore` で分離（`app/stores/line-stamp.ts`）
+- [x] **コンポーネント配置（文言選択）**
+  - ページ専用: `components/pages/line-stamp/StampPresetSelector.vue` を配置
   - 共通コンポーネントは既存 `common/` を流用し、新規は必要最小限
 - [ ] **申請注記・FAQ（A + C 確定）**
   - LINEスタンプ作成ページ（`/result/line-stamp`）に「LINEクリエイターズマーケットへの申請はご自身でお願いします」を表示（ヘッダー直下 or CTA 上）。必要に応じて LINE Creators Market へのリンクを併記 → **注記は実装済み**
@@ -74,7 +74,7 @@
   - 必要に応じて LINE Creators Market（https://creator.line.me/ja/）への外部リンクを併記（`<a target="_blank" rel="noopener noreferrer">`）
 - [x] **元画像エリア**
   - 完成したアイコン画像のプレビュー（小さめのサムネイル）。`resultImageUrl` を `NuxtImg` で表示
-- [ ] **文言選択ブロック**
+- [x] **文言選択ブロック**
   - 単語／セットのタブまたは切り替え。カテゴリは Phase 2 でも可
   - **おすすめ8個（申請用）** を目立つ位置に配置し、1 クリックで選択可能に
   - プリセットをチップまたはカードで表示、複数選択可能。使用例: `UButton`（チップ風）、`UCard`（カード）
@@ -99,8 +99,8 @@
   - 必須セット: あいさつ・感謝・リアクション・愛情・フォロー・応援
   - 推奨8個セット: `recommended_8`（ohayo, oyasumi, arigato, otsukare, iine, daisuki, gomen, bye）
   - カテゴリは「セットのグループ表示」またはタブで対応。Phase 2 で拡張可
-- [ ] **ストア**
-  - 選択中 wordIds・ZIP 生成中フラグ等を既存 `useGenerationStore` に追加するか、`useLineStampStore` で分離（実装時に判断）
+- [x] **ストア**
+  - 選択中 wordIds・ZIP 生成中フラグ等を `useLineStampStore` で分離（`app/stores/line-stamp.ts`）
 
 ## 5.4 画像合成・出力
 

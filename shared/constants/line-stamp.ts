@@ -4,7 +4,12 @@
  * @remark 仕様: docs/requirements/line-stamp-spec.md
  */
 
-import type { StampCategory, StampSet, StampWord } from '../types/line-stamp';
+import type {
+  StampCategory,
+  StampSet,
+  StampWord,
+  StampWordGroup
+} from '../types/line-stamp';
 
 /**
  * 単語プリセット（初期実装分）
@@ -133,3 +138,18 @@ export const STAMP_CATEGORIES: readonly StampCategory[] = [
  * おすすめ8個セットのID（UIで目立つ位置に配置する際の参照用）
  */
 export const RECOMMENDED_8_SET_ID = 'recommended_8' as const;
+
+/**
+ * 単語グループの表示名（UIの見出し用）
+ * 仕様 3.2.1 の分類名に対応
+ */
+export const STAMP_GROUP_LABELS: Record<StampWordGroup, string> = {
+  aisatsu: 'あいさつ',
+  kansha: '感謝・ねぎらい',
+  reaction: 'リアクション',
+  oen: '応援・励まし',
+  ai_follow: '愛情',
+  gomen_follow: 'ごめん・フォロー',
+  work: '仕事用',
+  seasonal: '季節・イベント'
+};
