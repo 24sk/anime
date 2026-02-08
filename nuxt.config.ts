@@ -42,7 +42,11 @@ export default defineNuxtConfig({
         },
         { name: 'twitter:card', content: 'summary_large_image' }
       ],
-      link: [{ rel: 'icon', href: '/favicon.ico' }],
+      link: [
+        { rel: 'icon', href: '/favicon.ico' },
+        // iOS・Safariでホーム画面に追加した際のアイコン（180x180推奨）
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }
+      ],
       htmlAttrs: { lang: 'ja' }
     }
   },
