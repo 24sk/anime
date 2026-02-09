@@ -12,6 +12,7 @@ import { analyzePetImage, generateImageWithImagen } from '~~/server/utils/gemini
 import { uploadImageToBlob } from '~~/server/utils/blob';
 import { checkLineStampDailyLimit, LINE_STAMP_DAILY_LIMIT } from '~~/server/utils/stamp-limit';
 import { getLineStampGenerationPrompt } from '~~/server/utils/prompts';
+import { processStampImage } from '~~/server/utils/stamp-image';
 import { STAMP_WORDS } from '~~/shared/constants/line-stamp';
 
 /** 自由入力文言の最大文字数（フロントと一致） */
@@ -36,7 +37,11 @@ const generateRequestSchema = z
       { message: '無効な画像URLです' }
     ),
     word_id: z.string().optional(),
-    custom_label: z.string().max(CUSTOM_LABEL_MAX_LENGTH).optional()
+    custom_label: z.string().max(CUSTOM_LABEL_MAX_LENGTH).optional(),
+    /** アイコン変換時に選択されたスタイルタイプ（モデル選択に使用） */
+    style_type: z.string().optional(),
+    /** バッチ生成時のカラーパレットインデックス（各スタンプで異なる色を使用） */
+    color_index: z.number().int().min(0).optional()
   })
   .refine(
     (data) => {
@@ -105,14 +110,20 @@ export default defineEventHandler(async (event: H3Event) => {
     // スタンプ用プロンプト生成
     const prompt = getLineStampGenerationPrompt(label, petDescription);
 
-    // 画像生成（既存の Gemini 画像生成モデルを使用）
-    const modelName = 'gemini-2.5-flash-image';
+    // モデル選択: アイコン変換時と同じロジック（3d-anime は Imagen 4、それ以外は Gemini 2.5 Flash Image）
+    let modelName = 'gemini-2.5-flash-image';
+    if (validated.style_type === '3d-anime') {
+      modelName = 'imagen-4.0-generate-001';
+    }
     const generatedImage = await generateImageWithImagen(validated.image_url, prompt, modelName);
+
+    // 後処理: クロマキー緑背景を透過に変換し、SVGでカラフルテキストを合成
+    const processedImage = await processStampImage(generatedImage, label, validated.color_index ?? 0);
 
     // Vercel Blob にアップロード（line_stamps パス）
     const stampId = uuidv4();
     const { url: resultUrl } = await uploadImageToBlob({
-      imageData: generatedImage,
+      imageData: processedImage,
       anonSessionId: validated.anon_session_id,
       jobId: stampId,
       type: 'line_stamp'

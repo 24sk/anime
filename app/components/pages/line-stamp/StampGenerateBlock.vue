@@ -8,10 +8,31 @@
  * @remark Phase 2: 失敗した文言のみを対象とした「失敗分を再生成」操作を提供する（5.8.1 5. UI）
  */
 
+import { STAMP_WORDS } from '~~/shared/constants/line-stamp';
+
 const lineStampStore = useLineStampStore();
 const generationStore = useGenerationStore();
 const { getAnonSessionId } = useAnonSession();
 const requestUrl = useRequestURL();
+
+/**
+ * 複数文言選択時はバッチ生成（export API）を使用するかどうか
+ * - 2件以上選択されている場合はバッチフローで全件生成する
+ * - 1件のみの場合は従来の単一生成 API を使用する
+ */
+const useBatchFlow = computed(
+  () =>
+    lineStampStore.hasBatchSelection && lineStampStore.effectiveLabelsForBatch.length > 1
+);
+
+/**
+ * バッチ生成が進行中かどうか
+ * - textResults のいずれかが generating 状態、または ZIP 生成中の場合に true
+ */
+const isBatchInProgress = computed(() => {
+  if (lineStampStore.zipResult.status === 'generating') return true;
+  return Object.values(lineStampStore.textResults).some(r => r.status === 'generating');
+});
 
 /**
  * Phase 2: 複数スタンプ生成結果をグリッド表示するためのエントリ一覧
@@ -69,21 +90,62 @@ function getStatusLabel(status: string): string {
  * - ストアの retryFailedTexts で失敗ステータスの項目を generating に戻しつつ、再試行対象のキー一覧を取得する
  * - 実際のバッチ生成API呼び出しは親コンポーネント側で行う想定のため、イベントでキー一覧を通知する
  */
-const emit = defineEmits<{
-  /**
-   * 失敗したスタンプのうち、再試行可能な文言キー一覧を親に通知するイベント
-   * - 親側で /api/line-stamp/export 等のバッチAPIに再送する際の入力として利用する
-   */
-  (e: 'retry-failed-texts', payload: { keys: string[] }): void;
-}>();
+/**
+ * 失敗した個別スタンプを再生成する
+ * - 指定されたラベルのステータスを generating に戻し、単一生成 API を呼び出す
+ * @param label - 再生成対象の文言ラベル
+ */
+async function onRetrySingleText(label: string) {
+  const existing = lineStampStore.textResults[label];
+  if (!existing || existing.status !== 'failed') return;
+  if (existing.retryCount >= 2) return; // MAX_RETRY_COUNT
 
-function onRetryFailedTexts() {
-  // ストア側で失敗しているスタンプのみを再生成対象として status を generating に更新し、そのキー一覧を受け取る
-  const keys = lineStampStore.retryFailedTexts();
-  if (!keys.length) return;
+  // ストア上で generating に戻す
+  lineStampStore.textResults[label] = {
+    ...existing,
+    status: 'generating',
+    retryCount: existing.retryCount + 1,
+    errorMessage: null
+  };
 
-  // 親コンポーネントでのAPI再呼び出しに使えるよう、イベントとして通知する
-  emit('retry-failed-texts', { keys });
+  const imageUrl = generationStore.resultImageUrl;
+  if (!imageUrl) return;
+
+  const absoluteImageUrl = imageUrl.startsWith('http') ? imageUrl : `${requestUrl.origin}${imageUrl}`;
+  const word = STAMP_WORDS.find(w => w.label === label);
+  const body: {
+    anon_session_id: string;
+    image_url: string;
+    word_id?: string;
+    custom_label?: string;
+    style_type?: string;
+  } = {
+    anon_session_id: getAnonSessionId(),
+    image_url: absoluteImageUrl
+  };
+  if (word) {
+    body.word_id = word.id;
+  } else {
+    body.custom_label = label;
+  }
+  if (generationStore.selectedStyle) {
+    body.style_type = generationStore.selectedStyle;
+  }
+
+  try {
+    const res = await $fetch<{ result_image_url: string }>('/api/line-stamp/generate', {
+      method: 'POST',
+      body
+    });
+    lineStampStore.setTextGenerationSuccess(label, res.result_image_url);
+  } catch (error: unknown) {
+    const message
+      = error && typeof error === 'object' && error !== null && 'data' in error
+        && typeof (error as { data?: { message?: string } }).data?.message === 'string'
+        ? (error as { data: { message: string } }).data.message
+        : 'スタンプの生成に失敗しました。';
+    lineStampStore.setTextGenerationFailure(label, message);
+  }
 }
 
 /** 生成 API を呼び出し、結果をストアに反映する */
@@ -102,6 +164,7 @@ async function generateStamp() {
     image_url: string;
     word_id?: string;
     custom_label?: string;
+    style_type?: string;
   } = {
     anon_session_id: getAnonSessionId(),
     image_url: absoluteImageUrl
@@ -110,6 +173,10 @@ async function generateStamp() {
     body.custom_label = lineStampStore.customWord.trim();
   } else if (lineStampStore.selectedWordId) {
     body.word_id = lineStampStore.selectedWordId;
+  }
+  // アイコン変換時のスタイルタイプを渡し、サーバー側で適切なモデルを選択させる
+  if (generationStore.selectedStyle) {
+    body.style_type = generationStore.selectedStyle;
   }
 
   try {
@@ -125,6 +192,83 @@ async function generateStamp() {
         ? (error as { data: { message: string } }).data.message
         : 'スタンプの生成に失敗しました。時間を置いてやり直してください。';
     lineStampStore.setGenerateError(message);
+  }
+}
+
+/**
+ * Phase 2: 複数文言選択時に、既存の単一生成 API（POST /api/line-stamp/generate）を
+ * 一括並列で呼び出して各スタンプを生成する。
+ * - export API + ワーカー方式はワーカー未実装のため使用しない
+ * - 各文言ごとに成功/失敗をストアに反映し、失敗しても残りの生成を続行する
+ */
+async function startBatchExport() {
+  const imageUrl = generationStore.resultImageUrl;
+  const labels = lineStampStore.effectiveLabelsForBatch;
+  if (!imageUrl || !labels.length) return;
+
+  const absoluteImageUrl = imageUrl.startsWith('http') ? imageUrl : `${requestUrl.origin}${imageUrl}`;
+  const plannedCount = Math.min(labels.length, lineStampStore.stampCount);
+  const textsToSend = labels.slice(0, plannedCount);
+
+  lineStampStore.startBatchGeneration(textsToSend);
+  lineStampStore.generateError = null;
+
+  // 全文言を一括並列で生成し、完了した順にストアへ即時反映してプレビューを表示する
+  let successCount = 0;
+  let failCount = 0;
+
+  await Promise.all(
+    textsToSend.map(async (label) => {
+      const word = STAMP_WORDS.find(w => w.label === label);
+      const body: {
+        anon_session_id: string;
+        image_url: string;
+        word_id?: string;
+        custom_label?: string;
+        style_type?: string;
+      } = {
+        anon_session_id: getAnonSessionId(),
+        image_url: absoluteImageUrl
+      };
+      if (word) {
+        body.word_id = word.id;
+      } else {
+        body.custom_label = label;
+      }
+      if (generationStore.selectedStyle) {
+        body.style_type = generationStore.selectedStyle;
+      }
+
+      try {
+        const res = await $fetch<{ result_image_url: string }>('/api/line-stamp/generate', {
+          method: 'POST',
+          body
+        });
+        lineStampStore.setTextGenerationSuccess(label, res.result_image_url);
+        successCount++;
+      } catch (error: unknown) {
+        const message
+          = error && typeof error === 'object' && error !== null && 'data' in error
+            && typeof (error as { data?: { message?: string } }).data?.message === 'string'
+            ? (error as { data: { message: string } }).data.message
+            : 'スタンプの生成に失敗しました。';
+        lineStampStore.setTextGenerationFailure(label, message);
+        failCount++;
+      }
+    })
+  );
+
+  // メイン画像・タブ画像はワーカー未実装のため idle に戻す
+  lineStampStore.mainImageResult = { status: 'idle', retryCount: 0, imageUrl: null, errorMessage: null };
+  lineStampStore.tabImageResult = { status: 'idle', retryCount: 0, imageUrl: null, errorMessage: null };
+
+  // 結果に応じたエラーメッセージを設定
+  if (failCount > 0 && successCount > 0) {
+    lineStampStore.generateError
+      = `${textsToSend.length}個中${successCount}個のスタンプ生成に成功しました。残り${failCount}個のスタンプは、少し時間をおいてから再生成をお試しください。`;
+  } else if (failCount > 0 && successCount === 0) {
+    lineStampStore.generateError
+      = 'スタンプの生成に失敗しました。お手数ですが、時間をおいてから再度お試しください。';
   }
 }
 
@@ -165,8 +309,9 @@ function downloadStampZip() {
 <template>
   <section aria-labelledby="line-stamp-generate-heading">
     <!-- CTA: 文言選択済みかつ未生成・未ローディング時。単語未選択時は非活性（仕様: docs/features/ui/line-stamp.md） -->
+    <!-- 複数選択時はバッチ生成（export）、1件のみ時は単一生成（generate）でアニメ風アイコンを必ず使用する -->
     <div
-      v-if="!lineStampStore.isGeneratingStamp && !lineStampStore.generatedStampImageUrl"
+      v-if="!lineStampStore.isGeneratingStamp && !lineStampStore.generatedStampImageUrl && !isBatchInProgress"
       class="flex justify-center py-4"
     >
       <UButton
@@ -176,10 +321,10 @@ function downloadStampZip() {
         variant="solid"
         icon="i-simple-icons-line"
         class="rounded-3xl w-full bg-[#06C755]! text-white! hover:bg-[#05a84a]!"
-        :disabled="!lineStampStore.hasSelection"
-        :aria-disabled="!lineStampStore.hasSelection"
-        :title="lineStampStore.hasSelection ? undefined : '文言を選択してください'"
-        @click="generateStamp"
+        :disabled="!lineStampStore.hasSelection && !lineStampStore.hasBatchSelection"
+        :aria-disabled="!lineStampStore.hasSelection && !lineStampStore.hasBatchSelection"
+        :title="(lineStampStore.hasSelection || lineStampStore.hasBatchSelection) ? undefined : '文言を選択してください'"
+        @click="useBatchFlow ? startBatchExport() : generateStamp()"
       >
         スタンプを生成
       </UButton>
@@ -231,26 +376,12 @@ function downloadStampZip() {
       v-if="batchTextResultEntries.length"
       class="mt-6 space-y-3"
     >
-      <div class="flex items-center justify-between gap-2">
-        <h2
-          id="line-stamp-generated-list-heading"
-          class="text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          生成されたスタンプ一覧
-        </h2>
-        <!-- 失敗した文言のみを対象とした一括再生成ボタン（仕様: docs/features/ui/line-stamp.md 5.8.1 5. UI） -->
-        <UButton
-          color="primary"
-          variant="outline"
-          size="xs"
-          class="shrink-0"
-          :disabled="!lineStampStore.hasRetryableTexts"
-          :aria-disabled="!lineStampStore.hasRetryableTexts"
-          @click="onRetryFailedTexts"
-        >
-          失敗したスタンプを再生成する
-        </UButton>
-      </div>
+      <h2
+        id="line-stamp-generated-list-heading"
+        class="text-sm font-medium text-gray-700 dark:text-gray-300"
+      >
+        生成されたスタンプ一覧
+      </h2>
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
         <div
           v-for="([key, result]) in batchTextResultEntries"
@@ -287,10 +418,10 @@ function downloadStampZip() {
                 aria-hidden="true"
               />
             </template>
-            <!-- 失敗: エラーアイコンと短いメッセージ -->
+            <!-- 失敗: エラーアイコン + 個別リトライボタン -->
             <div
               v-else-if="result.status === 'failed'"
-              class="flex flex-col items-center justify-center gap-1 text-center px-1"
+              class="flex flex-col items-center justify-center gap-2 text-center px-1"
             >
               <Icon
                 name="lucide:alert-circle"
@@ -298,7 +429,23 @@ function downloadStampZip() {
                 aria-hidden="true"
               />
               <span class="text-[10px] text-red-500">
-                エラーが発生しました
+                生成に失敗しました
+              </span>
+              <UButton
+                v-if="result.retryCount < 2"
+                color="primary"
+                variant="outline"
+                size="xs"
+                class="rounded-full"
+                @click="onRetrySingleText(key)"
+              >
+                再生成
+              </UButton>
+              <span
+                v-else
+                class="text-[10px] text-gray-400"
+              >
+                再試行上限に達しました
               </span>
             </div>
             <!-- 未生成: 時計アイコンで待機状態を表示 -->
@@ -473,7 +620,3 @@ function downloadStampZip() {
     />
   </section>
 </template>
-
-<style scoped lang="scss">
-/* スタンプ生成CTAは result の「LINEスタンプ用に作る」と同様の UButton + LINE カラーで表示 */
-</style>

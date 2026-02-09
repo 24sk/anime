@@ -399,7 +399,3 @@ const tabItems = [
     </UTabs>
   </section>
 </template>
-
-<style scoped lang="scss">
-/* 文言選択ブロック：既存デザインシステムに合わせる */
-</style>
