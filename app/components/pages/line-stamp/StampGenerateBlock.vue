@@ -8,6 +8,7 @@
  * @remark Phase 2: 失敗した文言のみを対象とした「失敗分を再生成」操作を提供する（5.8.1 5. UI）
  */
 
+import JSZip from 'jszip';
 import { STAMP_WORDS } from '~~/shared/constants/line-stamp';
 
 const lineStampStore = useLineStampStore();
@@ -64,28 +65,6 @@ const isZipGenerating = computed(() => lineStampStore.zipResult.status === 'gene
 const canDownloadZip = computed(() => hasZipDownloadUrl.value && !isZipGenerating.value);
 
 /**
- * メイン画像・タブ画像の生成ステータス用ラベルを返すヘルパー
- * - 仕様上「ZIP には常にメイン画像・タブ画像を含める」前提のため、
- *   各ステータスごとに ZIP への同梱状況が分かる文言を返す。
- * - idle: まだ生成していない状態（ZIP に含めるには生成が必要）
- * - generating: 生成処理中（完了すると ZIP に含まれる）
- * - success: 正常に生成完了し、ZIP に同梱される
- * - failed: エラーにより生成失敗（そのままでは ZIP に含まれない）
- */
-function getStatusLabel(status: string): string {
-  switch (status) {
-    case 'generating':
-      return '生成中です（完了するとZIPに含まれます）';
-    case 'success':
-      return '生成済み（ZIPに含まれます）';
-    case 'failed':
-      return '生成に失敗しました（ZIPには含まれません）';
-    default:
-      return 'まだ生成していません（ZIPに含めるには生成が必要です）';
-  }
-}
-
-/**
  * Phase 2: 失敗した文言のみを対象に再生成を開始する
  * - ストアの retryFailedTexts で失敗ステータスの項目を generating に戻しつつ、再試行対象のキー一覧を取得する
  * - 実際のバッチ生成API呼び出しは親コンポーネント側で行う想定のため、イベントでキー一覧を通知する
@@ -112,6 +91,7 @@ async function onRetrySingleText(label: string) {
   if (!imageUrl) return;
 
   const absoluteImageUrl = imageUrl.startsWith('http') ? imageUrl : `${requestUrl.origin}${imageUrl}`;
+  const colorIndex = Object.keys(lineStampStore.textResults).indexOf(label);
   const word = STAMP_WORDS.find(w => w.label === label);
   const body: {
     anon_session_id: string;
@@ -119,9 +99,11 @@ async function onRetrySingleText(label: string) {
     word_id?: string;
     custom_label?: string;
     style_type?: string;
+    color_index?: number;
   } = {
     anon_session_id: getAnonSessionId(),
-    image_url: absoluteImageUrl
+    image_url: absoluteImageUrl,
+    color_index: colorIndex >= 0 ? colorIndex : 0
   };
   if (word) {
     body.word_id = word.id;
@@ -218,7 +200,7 @@ async function startBatchExport() {
   let failCount = 0;
 
   await Promise.all(
-    textsToSend.map(async (label) => {
+    textsToSend.map(async (label, index) => {
       const word = STAMP_WORDS.find(w => w.label === label);
       const body: {
         anon_session_id: string;
@@ -226,9 +208,11 @@ async function startBatchExport() {
         word_id?: string;
         custom_label?: string;
         style_type?: string;
+        color_index?: number;
       } = {
         anon_session_id: getAnonSessionId(),
-        image_url: absoluteImageUrl
+        image_url: absoluteImageUrl,
+        color_index: index
       };
       if (word) {
         body.word_id = word.id;
@@ -258,10 +242,6 @@ async function startBatchExport() {
     })
   );
 
-  // メイン画像・タブ画像はワーカー未実装のため idle に戻す
-  lineStampStore.mainImageResult = { status: 'idle', retryCount: 0, imageUrl: null, errorMessage: null };
-  lineStampStore.tabImageResult = { status: 'idle', retryCount: 0, imageUrl: null, errorMessage: null };
-
   // 結果に応じたエラーメッセージを設定
   if (failCount > 0 && successCount > 0) {
     lineStampStore.generateError
@@ -269,6 +249,11 @@ async function startBatchExport() {
   } else if (failCount > 0 && successCount === 0) {
     lineStampStore.generateError
       = 'スタンプの生成に失敗しました。お手数ですが、時間をおいてから再度お試しください。';
+  }
+
+  // 成功したスタンプが1件以上あればZIPを自動生成
+  if (successCount > 0) {
+    await buildAndDownloadZip();
   }
 }
 
@@ -287,9 +272,41 @@ function downloadStampImage() {
 }
 
 /**
+ * 成功したスタンプ画像をfetchしてクライアント側でZIPを生成・ダウンロードする
+ * - バッチ生成完了後に自動で呼び出される
+ * - 成功したスタンプのみをZIPに含める
+ */
+async function buildAndDownloadZip() {
+  const stamps = lineStampStore.successfulStamps;
+  if (!stamps.length) return;
+
+  lineStampStore.zipResult = { status: 'generating', downloadUrl: null };
+
+  try {
+    const zip = new JSZip();
+
+    await Promise.all(
+      stamps.map(async ({ label, imageUrl }, index) => {
+        const res = await fetch(imageUrl);
+        const blob = await res.blob();
+        const fileName = `${String(index + 1).padStart(2, '0')}_${label.replace(/[\\/:*?"<>|]/g, '_')}.png`;
+        zip.file(fileName, blob);
+      })
+    );
+
+    const content = await zip.generateAsync({ type: 'blob' });
+    const blobUrl = URL.createObjectURL(content);
+
+    lineStampStore.zipResult = { status: 'success', downloadUrl: blobUrl };
+  } catch {
+    lineStampStore.zipResult = { status: 'idle', downloadUrl: null };
+    lineStampStore.generateError = 'ZIPファイルの作成に失敗しました。個別にダウンロードしてください。';
+  }
+}
+
+/**
  * 生成済みのZIPファイルをダウンロードする
- * - ZIP の署名付きURLが存在する場合のみアンカータグを生成してクリックする
- * - 生成が一部失敗している場合でも、成功したスタンプだけを含むZIPをそのままダウンロードできる
+ * - ZIP の Blob URL が存在する場合のみアンカータグを生成してクリックする
  */
 function downloadStampZip() {
   const url = lineStampStore.zipResult.downloadUrl;
@@ -298,8 +315,6 @@ function downloadStampZip() {
   const link = document.createElement('a');
   link.href = url;
   link.download = 'line-stamps.zip';
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -472,90 +487,6 @@ function downloadStampZip() {
         </div>
       </div>
     </div>
-
-    <!-- Phase 2: メイン画像・タブ画像の状態表示（スピナー / 成功 / エラーアイコンで区別） -->
-    <section
-      class="mt-6 space-y-3"
-      aria-labelledby="line-stamp-main-tab-heading"
-    >
-      <h2
-        id="line-stamp-main-tab-heading"
-        class="text-sm font-medium text-gray-700 dark:text-gray-300"
-      >
-        メイン画像・タブ画像の状態
-      </h2>
-      <div class="grid grid-cols-2 gap-3">
-        <!-- メイン画像の状態 -->
-        <div class="rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 space-y-1">
-          <p class="text-xs font-medium text-gray-700 dark:text-gray-300">
-            メイン画像
-          </p>
-          <div class="flex items-center gap-2 mt-1">
-            <span
-              v-if="lineStampStore.mainImageResult.status === 'generating'"
-              class="inline-block size-5 border-3 border-primary-500 border-t-transparent rounded-full animate-spin"
-              aria-hidden="true"
-            />
-            <Icon
-              v-else-if="lineStampStore.mainImageResult.status === 'success'"
-              name="lucide:check-circle-2"
-              class="text-emerald-500 size-5"
-              aria-hidden="true"
-            />
-            <Icon
-              v-else-if="lineStampStore.mainImageResult.status === 'failed'"
-              name="lucide:alert-circle"
-              class="text-red-500 size-5"
-              aria-hidden="true"
-            />
-            <Icon
-              v-else
-              name="lucide:clock-3"
-              class="text-gray-400 dark:text-gray-500 size-5"
-              aria-hidden="true"
-            />
-            <p class="text-[11px] text-gray-600 dark:text-gray-400">
-              {{ getStatusLabel(lineStampStore.mainImageResult.status) }}
-            </p>
-          </div>
-        </div>
-
-        <!-- タブ画像の状態 -->
-        <div class="rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 space-y-1">
-          <p class="text-xs font-medium text-gray-700 dark:text-gray-300">
-            タブ画像
-          </p>
-          <div class="flex items-center gap-2 mt-1">
-            <span
-              v-if="lineStampStore.tabImageResult.status === 'generating'"
-              class="inline-block size-5 border-3 border-primary-500 border-t-transparent rounded-full animate-spin"
-              aria-hidden="true"
-            />
-            <Icon
-              v-else-if="lineStampStore.tabImageResult.status === 'success'"
-              name="lucide:check-circle-2"
-              class="text-emerald-500 size-5"
-              aria-hidden="true"
-            />
-            <Icon
-              v-else-if="lineStampStore.tabImageResult.status === 'failed'"
-              name="lucide:alert-circle"
-              class="text-red-500 size-5"
-              aria-hidden="true"
-            />
-            <Icon
-              v-else
-              name="lucide:clock-3"
-              class="text-gray-400 dark:text-gray-500 size-5"
-              aria-hidden="true"
-            />
-            <p class="text-[11px] text-gray-600 dark:text-gray-400">
-              {{ getStatusLabel(lineStampStore.tabImageResult.status) }}
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- Phase 2: ZIP ダウンロードブロック
          - ZIP 生成が完了して署名付きURLが取得できたら「スタンプを ZIP でダウンロード」を主CTAとして表示
