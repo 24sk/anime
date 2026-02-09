@@ -92,6 +92,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      line_stamp_jobs: {
+        Row: {
+          anon_session_id: string;
+          created_at: string | null;
+          error_message: string | null;
+          id: string;
+          image_url: string;
+          include_main_and_tab: boolean;
+          main_image_url: string | null;
+          progress: number;
+          stamp_count: number;
+          status: string;
+          tab_image_url: string | null;
+          texts: Json;
+          updated_at: string | null;
+          zip_url: string | null;
+        };
+        Insert: {
+          anon_session_id: string;
+          created_at?: string | null;
+          error_message?: string | null;
+          id?: string;
+          image_url: string;
+          include_main_and_tab?: boolean;
+          main_image_url?: string | null;
+          progress?: number;
+          stamp_count: number;
+          status?: string;
+          tab_image_url?: string | null;
+          texts: Json;
+          updated_at?: string | null;
+          zip_url?: string | null;
+        };
+        Update: {
+          anon_session_id?: string;
+          created_at?: string | null;
+          error_message?: string | null;
+          id?: string;
+          image_url?: string;
+          include_main_and_tab?: boolean;
+          main_image_url?: string | null;
+          progress?: number;
+          stamp_count?: number;
+          status?: string;
+          tab_image_url?: string | null;
+          texts?: Json;
+          updated_at?: string | null;
+          zip_url?: string | null;
+        };
+        Relationships: [];
+      };
       feedbacks: {
         Row: {
           anon_session_id: string;

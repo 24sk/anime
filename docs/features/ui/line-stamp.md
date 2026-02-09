@@ -195,9 +195,9 @@
 
 - [ ] **4. API・`line-stamp-automation` 連携（非同期ジョブ）**
   - [ ] 既存の `POST /api/line-stamp/generate` を多文言対応に拡張できるかを検討し、可能な場合は `/generate` をバッチ対応 API として拡張する
-  - [ ] `/generate` の拡張が難しい場合は、`line-stamp-automation` の処理を Nitro 側に移植した新規エンドポイント（例: `POST /api/line-stamp/export`）を実装する
-  - [ ] バッチ生成 API を **非同期ジョブ方式** とし、呼び出し時にサーバー側でジョブを作成してキューに登録し、`{ job_id: string }` をレスポンスとして返す
-  - [ ] `GET /api/line-stamp/export/:job_id`（案）のようなエンドポイントでジョブの進捗・結果（各文言・メイン・タブ画像の成功／失敗・画像 URL・ZIP の署名付き URL 等）を取得できるようにする
+  - [x] `/generate` の拡張が難しい場合は、`line-stamp-automation` の処理を Nitro 側に移植した新規エンドポイント（例: `POST /api/line-stamp/export`）を実装する
+  - [x] バッチ生成 API を **非同期ジョブ方式** とし、呼び出し時にサーバー側でジョブを作成してキューに登録し、`{ job_id: string }` をレスポンスとして返す
+  - [x] `GET /api/line-stamp/export/:job_id`（案）のようなエンドポイントでジョブの進捗・結果（各文言・メイン・タブ画像の成功／失敗・画像 URL・ZIP の署名付き URL 等）を取得できるようにする
   - [ ] 認可ロジックを実装し、Phase 2 のバッチ生成 API はサブスク契約者にのみ利用可能とする
 
 - [ ] **5. 生成結果表示・ZIP ダウンロード UI**

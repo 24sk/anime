@@ -45,7 +45,32 @@ LINEスタンプ生成機能（特に Phase 2 の複数スタンプ自動生成�
 > * 日次上限はアプリケーション側で `LINE_STAMP_DAILY_LIMIT = 40` として定義し、このテーブルを参照して判定する。  
 > * Phase 2 で 1 リクエストあたり複数枚生成する際は、**生成枚数分をインクリメント**することで日次合計を管理する。
 
-### ③ `feedbacks` (フィードバック管理)
+### ③ `line_stamp_jobs` (LINEスタンプバッチ生成ジョブ)
+
+Phase 2 の複数スタンプ自動生成において、**非同期ジョブ方式**でバッチ生成の進捗・結果を管理するテーブル。
+
+* Nitro の `POST /api/line-stamp/export` でジョブを登録し、`GET /api/line-stamp/export/:job_id` で進捗・結果を取得する。
+* 実際の画像生成（Gemini・背景除去・テキスト合成・ZIP 生成）は `line-stamp-automation` などのワーカーが本テーブルを監視・更新する想定。
+* 参照・更新はバックエンド（service_role）およびワーカーからのみ行い、クライアントは API 経由でのみジョブ状態にアクセスする。RLS を有効化する場合は `anon_session_id` ベースの SELECT ポリシーを検討する。
+
+| カラム名 | 型 | 制約 | 説明 |
+| :--- | :--- | :--- | :--- |
+| `id` | UUID | PK, Default: gen_random_uuid() | ジョブの一意識別子 |
+| `anon_session_id` | UUID | Index, Not Null | クライアント側で生成・保持する匿名ID |
+| `image_url` | Text | Not Null | 元画像の URL（Vercel Blob 等） |
+| `texts` | JSONB | Not Null | 生成対象の文言配列（string[]） |
+| `stamp_count` | Integer | Not Null | 今回のバッチで生成するスタンプ枚数（最大40） |
+| `include_main_and_tab` | Boolean | Default: true | メイン画像・タブ画像をZIPに含めるか |
+| `status` | Text | Not Null, Default: 'pending' | ジョブ状態（'pending' \| 'processing' \| 'completed' \| 'failed'） |
+| `progress` | Integer | Default: 0 | 進捗率 0〜100（任意） |
+| `error_message` | Text | | 失敗時のユーザー向けメッセージ |
+| `main_image_url` | Text | | メイン画像の URL（ワーカーが設定） |
+| `tab_image_url` | Text | | タブ画像の URL（ワーカーが設定） |
+| `zip_url` | Text | | 生成ZIPの署名付きダウンロード URL（ワーカーが設定） |
+| `created_at` | Timestamptz | Default: now() | ジョブ作成日時 |
+| `updated_at` | Timestamptz | Default: now() | 最終更新日時 |
+
+### ④ `feedbacks` (フィードバック管理)
 
 生成結果に対するユーザーの評価（良・悪）を保存するテーブル。今後の品質改善に活用します。
 
@@ -86,6 +111,25 @@ CREATE TABLE IF NOT EXISTS generated_stamp_counts (
     last_generated_at TIMESTAMPTZ DEFAULT now(),
     CONSTRAINT generated_stamp_counts_pkey PRIMARY KEY (anon_session_id, date)
 );
+
+-- LINEスタンプバッチ生成ジョブ（Phase 2 非同期ジョブ用）
+CREATE TABLE IF NOT EXISTS line_stamp_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    anon_session_id UUID NOT NULL,
+    image_url TEXT NOT NULL,
+    texts JSONB NOT NULL,
+    stamp_count INTEGER NOT NULL,
+    include_main_and_tab BOOLEAN NOT NULL DEFAULT true,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    progress INTEGER NOT NULL DEFAULT 0,
+    error_message TEXT,
+    main_image_url TEXT,
+    tab_image_url TEXT,
+    zip_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_line_stamp_jobs_session_id ON line_stamp_jobs(anon_session_id);
 
 CREATE TABLE IF NOT EXISTS feedbacks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
