@@ -71,6 +71,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      generated_stamp_counts: {
+        Row: {
+          anon_session_id: string;
+          date: string;
+          generated_count: number;
+          last_generated_at: string | null;
+        };
+        Insert: {
+          anon_session_id: string;
+          date: string;
+          generated_count?: number;
+          last_generated_at?: string | null;
+        };
+        Update: {
+          anon_session_id?: string;
+          date?: string;
+          generated_count?: number;
+          last_generated_at?: string | null;
+        };
+        Relationships: [];
+      };
       feedbacks: {
         Row: {
           anon_session_id: string;

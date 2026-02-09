@@ -9,13 +9,16 @@ type RateLimitUpdate = Database['public']['Tables']['rate_limits']['Update'];
 
 /**
  * レートリミット設定
- * @remark 環境変数から読み込むことも可能（例: process.env.RATE_LIMIT_MAX_REQUESTS）
+ * - 同一IPアドレスあたり 24時間で最大200リクエストまで許可する
+ * - 画像生成API全体のセーフティネットとして利用し、LINEスタンプ生成の
+ *   「IPアドレス単位で200枚/日程度」の要件もこの設定で満たす
+ * @remark 必要になれば環境変数から読み込むように拡張する
  */
 export const RATE_LIMIT_CONFIG = {
-  // 1時間あたりの最大リクエスト数
-  MAX_REQUESTS_PER_HOUR: 10,
-  // リセット間隔（ミリ秒）
-  RESET_INTERVAL_MS: 60 * 60 * 1000 // 1時間
+  // 1つのレートリミットウィンドウ内の最大リクエスト数
+  MAX_REQUESTS_PER_WINDOW: 200,
+  // ウィンドウ長（ミリ秒）: 24時間
+  WINDOW_MS: 24 * 60 * 60 * 1000
 } as const;
 
 /**
@@ -64,7 +67,7 @@ export async function checkRateLimit(
 
   // 現在の時刻
   const now = new Date();
-  const resetAt = new Date(now.getTime() + RATE_LIMIT_CONFIG.RESET_INTERVAL_MS);
+  const resetAt = new Date(now.getTime() + RATE_LIMIT_CONFIG.WINDOW_MS);
 
   // rate_limitsテーブルから現在のレートリミット情報を取得
   // 型推論の問題を回避するため、型アサーションを使用
@@ -82,7 +85,7 @@ export async function checkRateLimit(
   if (selectError) {
     // エラーはログに記録して、レートリミットチェックをスキップ（サービス継続性のため）
     console.error('Rate limit check error:', selectError);
-    return { allowed: true, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR, resetAt };
+    return { allowed: true, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW, resetAt };
   }
 
   if (!rateLimitData) {
@@ -101,12 +104,12 @@ export async function checkRateLimit(
     if (insertError) {
       console.error('Rate limit insert error:', insertError);
       // エラー時はレートリミットチェックをスキップ
-      return { allowed: true, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR, resetAt };
+      return { allowed: true, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW, resetAt };
     }
 
     return {
       allowed: true,
-      remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR - 1,
+      remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW - 1,
       resetAt
     };
   }
@@ -128,12 +131,12 @@ export async function checkRateLimit(
 
     if (updateError) {
       console.error('Rate limit update error:', updateError);
-      return { allowed: true, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR, resetAt };
+      return { allowed: true, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW, resetAt };
     }
 
     return {
       allowed: true,
-      remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR - 1,
+      remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW - 1,
       resetAt
     };
   }
@@ -141,8 +144,8 @@ export async function checkRateLimit(
   const lastRequestAt = new Date(rateLimitData.last_request_at);
   const timeSinceLastRequest = now.getTime() - lastRequestAt.getTime();
 
-  // リセット間隔を超えている場合は、カウントをリセット
-  if (timeSinceLastRequest >= RATE_LIMIT_CONFIG.RESET_INTERVAL_MS) {
+  // レートリミットウィンドウを超えている場合はカウントをリセット
+  if (timeSinceLastRequest >= RATE_LIMIT_CONFIG.WINDOW_MS) {
     const updateData: RateLimitUpdate = {
       request_count: 1,
       last_request_at: now.toISOString()
@@ -157,23 +160,23 @@ export async function checkRateLimit(
 
     if (updateError) {
       console.error('Rate limit update error:', updateError);
-      return { allowed: true, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR, resetAt };
+      return { allowed: true, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW, resetAt };
     }
 
     return {
       allowed: true,
-      remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR - 1,
+      remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW - 1,
       resetAt
     };
   }
 
   // リクエスト数が上限に達しているかチェック
   const requestCount = rateLimitData.request_count ?? 0;
-  if (requestCount >= RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR) {
+  if (requestCount >= RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW) {
     return {
       allowed: false,
       remaining: 0,
-      resetAt: new Date(lastRequestAt.getTime() + RATE_LIMIT_CONFIG.RESET_INTERVAL_MS)
+      resetAt: new Date(lastRequestAt.getTime() + RATE_LIMIT_CONFIG.WINDOW_MS)
     };
   }
 
@@ -193,12 +196,12 @@ export async function checkRateLimit(
   if (updateError) {
     console.error('Rate limit update error:', updateError);
     // エラー時はレートリミットチェックをスキップ
-    return { allowed: true, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR, resetAt };
+    return { allowed: true, remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW, resetAt };
   }
 
   return {
     allowed: true,
-    remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR - (requestCount + 1),
-    resetAt: new Date(lastRequestAt.getTime() + RATE_LIMIT_CONFIG.RESET_INTERVAL_MS)
+    remaining: RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW - (requestCount + 1),
+    resetAt: new Date(lastRequestAt.getTime() + RATE_LIMIT_CONFIG.WINDOW_MS)
   };
 }

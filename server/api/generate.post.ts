@@ -45,9 +45,13 @@ export default defineEventHandler(async (event: H3Event) => {
     if (!rateLimitResult.allowed) {
       // レートリミット超過時は429エラーを返す
       setResponseStatus(event, 429);
-      setHeader(event, 'X-RateLimit-Limit', String(RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR));
+      setHeader(event, 'X-RateLimit-Limit', String(RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW));
       setHeader(event, 'X-RateLimit-Remaining', String(rateLimitResult.remaining));
-      setHeader(event, 'X-RateLimit-Reset', String(Math.floor(rateLimitResult.resetAt.getTime() / 1000)));
+      setHeader(
+        event,
+        'X-RateLimit-Reset',
+        String(Math.floor(rateLimitResult.resetAt.getTime() / 1000))
+      );
 
       throw createErrorResponse(
         429,
@@ -57,9 +61,13 @@ export default defineEventHandler(async (event: H3Event) => {
     }
 
     // レートリミット情報をレスポンスヘッダーに追加（デバッグ用）
-    setHeader(event, 'X-RateLimit-Limit', String(RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR));
+    setHeader(event, 'X-RateLimit-Limit', String(RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW));
     setHeader(event, 'X-RateLimit-Remaining', String(rateLimitResult.remaining));
-    setHeader(event, 'X-RateLimit-Reset', String(Math.floor(rateLimitResult.resetAt.getTime() / 1000)));
+    setHeader(
+      event,
+      'X-RateLimit-Reset',
+      String(Math.floor(rateLimitResult.resetAt.getTime() / 1000))
+    );
 
     // リクエストボディを取得
     const body = await readBody(event);

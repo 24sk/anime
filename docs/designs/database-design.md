@@ -25,6 +25,26 @@ AI生成の進捗、結果URL、および広告視聴状況を管理する基幹
 | `created_at` | Timestamptz | Default: now() | 生成リクエスト日時 |
 | `completed_at` | Timestamptz | | 生成処理の完了日時 |
 
+### ② `generated_stamp_counts` (LINEスタンプ生成枚数カウンタ)
+
+LINEスタンプ生成機能（特に Phase 2 の複数スタンプ自動生成）における、**1ユーザーあたりの日次生成枚数**を管理するテーブル。
+
+* 1 `anon_session_id` あたり **1 日 40 枚まで**を上限とする。
+* Supabase 上では **日付単位（UTC）でカウント**する。
+* アプリケーションサーバー（Nitro）からのみ service\_role で参照・更新する想定のため、RLS は必須ではないが、有効化する場合は `anon_session_id` ベースの同様ポリシーを適用する。
+
+| カラム名 | 型 | 制約 | 説明 |
+| :--- | :--- | :--- | :--- |
+| `anon_session_id` | UUID | PK(複合), Not Null | クライアント側で生成・保持する匿名ID |
+| `date` | Date | PK(複合), Not Null | 集計対象日（UTC基準） |
+| `generated_count` | Integer | Default: 0 | 当日の生成済みスタンプ枚数（累計） |
+| `last_generated_at` | Timestamptz | Default: now() | 最終生成日時 |
+
+> **補足:**  
+>
+> * 日次上限はアプリケーション側で `LINE_STAMP_DAILY_LIMIT = 40` として定義し、このテーブルを参照して判定する。  
+> * Phase 2 で 1 リクエストあたり複数枚生成する際は、**生成枚数分をインクリメント**することで日次合計を管理する。
+
 ### ③ `feedbacks` (フィードバック管理)
 
 生成結果に対するユーザーの評価（良・悪）を保存するテーブル。今後の品質改善に活用します。
@@ -57,6 +77,14 @@ CREATE TABLE IF NOT EXISTS generation_jobs (
     error_message TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     completed_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS generated_stamp_counts (
+    anon_session_id UUID NOT NULL,
+    date DATE NOT NULL,
+    generated_count INTEGER NOT NULL DEFAULT 0,
+    last_generated_at TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT generated_stamp_counts_pkey PRIMARY KEY (anon_session_id, date)
 );
 
 CREATE TABLE IF NOT EXISTS feedbacks (
@@ -120,9 +148,10 @@ USING (anon_session_id::text = (select private.request_anon_session_id()));
 
 -- 8. レートリミット管理用テーブル
 CREATE TABLE IF NOT EXISTS rate_limits (
-    ip_hash TEXT PRIMARY KEY,
+    ip_hash TEXT NOT NULL,
     request_count INTEGER DEFAULT 1,
-    last_request_at TIMESTAMPTZ DEFAULT now()
+    last_request_at TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT rate_limits_pkey PRIMARY KEY (ip_hash)
 );
 ```
 

@@ -98,10 +98,10 @@ export const STAMP_SETS: readonly StampSet[] = [
     wordIds: ['ganbare', 'fight', 'daijobu', 'murishinaide'],
     type: 'required'
   },
-  // おすすめ8個（申請用）：LINE申請の最小8個を1クリックで選択可能にする
+  // はじめての申請にオススメ：LINE申請の最小8個を1クリックで選択可能にする
   {
     id: 'recommended_8',
-    name: 'おすすめ8個（申請用）',
+    name: 'はじめての申請にオススメ',
     wordIds: [
       'ohayo',
       'oyasumi',
@@ -153,3 +153,10 @@ export const STAMP_GROUP_LABELS: Record<StampWordGroup, string> = {
   work: '仕事用',
   seasonal: '季節・イベント'
 };
+
+/**
+ * 1リクエストあたりの同時生成枚数の上限
+ * - Phase 2（複数スタンプ自動生成）の「最大40枚」仕様に対応
+ * - UI・API・line-stamp-automation で共通利用するため shared に定義する
+ */
+export const MAX_LINE_STAMP_PER_REQUEST = 40 as const;

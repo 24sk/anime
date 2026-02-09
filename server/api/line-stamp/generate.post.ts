@@ -10,6 +10,7 @@ import {
 } from '~~/server/utils/errors';
 import { analyzePetImage, generateImageWithImagen } from '~~/server/utils/gemini';
 import { uploadImageToBlob } from '~~/server/utils/blob';
+import { checkLineStampDailyLimit, LINE_STAMP_DAILY_LIMIT } from '~~/server/utils/stamp-limit';
 import { getLineStampGenerationPrompt } from '~~/server/utils/prompts';
 import { STAMP_WORDS } from '~~/shared/constants/line-stamp';
 
@@ -54,12 +55,17 @@ const generateRequestSchema = z
  */
 export default defineEventHandler(async (event: H3Event) => {
   try {
+    // IPアドレス単位のレートリミット（24時間で最大200リクエスト程度）をチェック
     const rateLimitResult = await checkRateLimit(event);
     if (!rateLimitResult.allowed) {
       setResponseStatus(event, 429);
-      setHeader(event, 'X-RateLimit-Limit', String(RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_HOUR));
+      setHeader(event, 'X-RateLimit-Limit', String(RATE_LIMIT_CONFIG.MAX_REQUESTS_PER_WINDOW));
       setHeader(event, 'X-RateLimit-Remaining', String(rateLimitResult.remaining));
-      setHeader(event, 'X-RateLimit-Reset', String(Math.floor(rateLimitResult.resetAt.getTime() / 1000)));
+      setHeader(
+        event,
+        'X-RateLimit-Reset',
+        String(Math.floor(rateLimitResult.resetAt.getTime() / 1000))
+      );
       throw createErrorResponse(
         429,
         ErrorCodes.RATE_LIMIT_EXCEEDED,
@@ -69,6 +75,17 @@ export default defineEventHandler(async (event: H3Event) => {
 
     const body = await readBody(event);
     const validated = generateRequestSchema.parse(body);
+
+    // 日次レート制限（1ユーザーあたり40枚/日）をチェック
+    const dailyLimitResult = await checkLineStampDailyLimit(event, validated.anon_session_id, 1);
+    if (!dailyLimitResult.allowed) {
+      setResponseStatus(event, 429);
+      throw createErrorResponse(
+        429,
+        ErrorCodes.RATE_LIMIT_EXCEEDED,
+        `本日のLINEスタンプ生成上限（${LINE_STAMP_DAILY_LIMIT}枚）に達しました。明日またお試しください。`
+      );
+    }
 
     // 使用する文言を決定（プリセットの label または custom_label）
     let label: string;
