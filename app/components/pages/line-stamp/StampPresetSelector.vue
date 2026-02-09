@@ -3,7 +3,9 @@
  * 文言選択コンポーネント（LINEスタンプ作成ページ専用）
  * プリセットから1ワードのみ単一選択、または自由入力で1文言を指定する。
  * 単語／セットタブでプリセットを表示し、単語タブ内に自由入力欄を配置。
- * @remark 仕様: docs/features/ui/line-stamp.md 5.2 文言選択ブロック
+ * また、「テキストを1つ選択してください」セクションの上に、
+ * Phase 2 で利用するスタンプ枚数選択（8 / 16 / 24 / 32 / 40、初期値 8）を表示する。
+ * @remark 仕様: docs/features/ui/line-stamp.md 5.2 文言選択ブロック, 5.8.1 仕様・制約
  */
 
 import {
@@ -18,6 +20,12 @@ import type { StampWordGroup } from '~~/shared/types/line-stamp';
 const CUSTOM_WORD_MAX_LENGTH = 20;
 
 const lineStampStore = useLineStampStore();
+
+/**
+ * 複数スタンプ生成時にユーザーが選択できる枚数の候補
+ * Phase 2 の「生成枚数 8 / 16 / 24 / 32 / 40」仕様に対応（初期値は 8）
+ */
+const STAMP_COUNT_OPTIONS = [8, 16, 24, 32, 40] as const;
 
 // 単語タブ用: グループごとに単語をまとめる（表示順は STAMP_GROUP_LABELS のキー順）
 const GROUP_ORDER: StampWordGroup[] = [
@@ -42,6 +50,19 @@ const wordsByGroup = computed(() => {
   );
 });
 
+/**
+ * スタンプ枚数選択用のラジオボタンアイテム
+ * label は「8枚」のような表示テキスト、value は数値のまま保持する
+ * @remark NuxtUI URadioGroup の items プロパティに渡す
+ */
+const stampCountRadioOptions = computed(() =>
+  STAMP_COUNT_OPTIONS.map(count => ({
+    // ラベルは文字列型（例: "8枚"）として定義する
+    label: String(count),
+    value: count
+  }))
+);
+
 // おすすめ8個セットとその他のセットに分離（おすすめ8個を先頭に表示）
 const recommendedSet = computed(
   () => STAMP_SETS.find(s => s.id === RECOMMENDED_8_SET_ID)
@@ -65,20 +86,32 @@ function onCustomWordInput(value: string) {
   lineStampStore.setCustomWord(value.slice(0, CUSTOM_WORD_MAX_LENGTH));
 }
 
-// UTabs の items（単語 / セット）。初期表示は単語タブ、セットは Phase 1 では非活性（仕様 5.2）
+// UTabs の items（単語 / セット）。初期表示は単語タブ。
 const tabItems = [
   { label: '単語', value: 'words', slot: 'words' },
-  { label: 'セット', value: 'sets', slot: 'sets', disabled: true }
+  { label: 'セット', value: 'sets', slot: 'sets' }
 ];
 </script>
 
 <template>
   <section aria-labelledby="line-stamp-preset-heading">
+    <!-- 生成するスタンプ枚数の選択（Phase 2 用。現在は文言選択の上に表示してユーザーに意図を伝える） -->
+    <div class="mb-4 space-y-2">
+      <h2 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        作成するLINEスタンプ数
+      </h2>
+      <URadioGroup
+        v-model="lineStampStore.stampCount"
+        :items="stampCountRadioOptions"
+        orientation="horizontal"
+      />
+    </div>
+
     <h2
       id="line-stamp-preset-heading"
       class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
     >
-      テキストを1つ選択してください
+      テキストを選択してください
     </h2>
     <UTabs
       :items="tabItems"
@@ -88,23 +121,6 @@ const tabItems = [
       :unmount-on-hide="false"
       default-value="words"
     >
-      <!-- セットタブが準備中である旨をツールチップで案内 -->
-      <template #list-trailing>
-        <UTooltip
-          text="セットタブは現在準備中です。近日中にご利用いただけます。"
-          :content="{ side: 'bottom', sideOffset: 6 }"
-        >
-          <span
-            class="inline-flex size-6 items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            aria-label="セットタブについて"
-          >
-            <UIcon
-              name="i-lucide-info"
-              class="size-4"
-            />
-          </span>
-        </UTooltip>
-      </template>
       <template #words>
         <div class="mt-3 space-y-4">
           <div

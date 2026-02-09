@@ -1,8 +1,9 @@
 /**
  * LINEスタンプ作成ページ用の状態を管理するストア
  * - 選択中の文言はプリセット1件または自由入力1件のいずれか（単一選択）
+ * - 生成するスタンプ枚数（Phase 2 の複数生成で使用）
  * - ZIP生成中フラグ（後続タスクで使用）
- * @remark 仕様: docs/features/ui/line-stamp.md 5.3 ストア
+ * @remark 仕様: docs/features/ui/line-stamp.md 5.3 ストア, 5.8.1 仕様・制約
  */
 
 import { STAMP_WORDS } from '~~/shared/constants/line-stamp';
@@ -19,6 +20,11 @@ export const useLineStampStore = defineStore('line-stamp', {
     generatedStampImageUrl: null as string | null,
     /** 生成失敗時のユーザー向けエラーメッセージ。未発生時は null */
     generateError: null as string | null,
+    /**
+     * 複数スタンプ生成時の目標枚数
+     * 8 / 16 / 24 / 32 / 40 のいずれかを UI から選択し、初期値は 8
+     */
+    stampCount: 8 as 8 | 16 | 24 | 32 | 40,
     /** ZIP生成中かどうか（後続タスクで使用） */
     isGeneratingZip: false
   }),
@@ -76,6 +82,14 @@ export const useLineStampStore = defineStore('line-stamp', {
     /** ZIP生成中フラグを設定（後続タスクで使用） */
     setIsGeneratingZip(value: boolean) {
       this.isGeneratingZip = value;
+    },
+
+    /**
+     * 生成するスタンプ枚数を設定する
+     * @param count - 8 / 16 / 24 / 32 / 40 のいずれか
+     */
+    setStampCount(count: 8 | 16 | 24 | 32 | 40) {
+      this.stampCount = count;
     },
 
     /** AI スタンプ生成開始（ローディング状態にし、前回の結果・エラーをクリア） */
