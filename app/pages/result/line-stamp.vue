@@ -31,6 +31,12 @@ useHead({
  * 元画像（resultImageUrl）が未設定の場合は結果画面へリダイレクト（直接URLアクセス対策・仕様 5.2）。
  * 開発時プレビューモード（?preview=1）の場合はリダイレクトせず、画像がなければサンプルを設定して表示する。
  */
+/** トップへ戻る（もう一度作る） */
+function goHome() {
+  generationStore.reset();
+  router.push('/');
+}
+
 onMounted(() => {
   if (isPreviewMode) {
     if (!generationStore.resultImageUrl) {
@@ -100,6 +106,21 @@ onMounted(() => {
 
       <!-- スタンプを生成 CTA と AI 生成結果 1 枚表示（Canvas プレビューは廃止・仕様 5.2） -->
       <StampGenerateBlock />
+
+      <!-- トップページへ戻る -->
+      <div class="mt-8 flex justify-center">
+        <UButton
+          size="lg"
+          block
+          color="neutral"
+          variant="ghost"
+          icon="i-heroicons-arrow-path"
+          class="rounded-3xl"
+          @click="goHome"
+        >
+          もう一度作る
+        </UButton>
+      </div>
     </div>
   </div>
 </template>

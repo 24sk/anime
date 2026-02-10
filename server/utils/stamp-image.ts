@@ -6,8 +6,68 @@
  * AIにテキスト描画を任せると日本語の誤字が発生するため、
  * 画像生成は「キャラクターのみ + 緑背景」で行い、
  * テキストは sharp + SVG で正確に合成する。
+ *
+ * テキスト描画には opentype.js でフォントを直接読み込み、
+ * テキストをSVGパスに変換して合成する。
+ * これにより Vercel 等のサーバー環境でシステムフォントに依存せず
+ * 日本語テキストを正確にレンダリングできる。
  */
 import sharp from 'sharp';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import opentype from 'opentype.js';
+
+// フォントのキャッシュ（初回ロード後に保持）
+let _font: opentype.Font | null = null;
+let _fontLoadPromise: Promise<opentype.Font> | null = null;
+
+/**
+ * フォントファイルを読み込む。
+ * 1. Nitro の useStorage API（本番: バンドル済みアセット）
+ * 2. フォールバック: ファイルシステムから直接読み込み（開発時）
+ */
+async function loadFontBuffer(): Promise<ArrayBuffer> {
+  // Nitro の useStorage で読み込みを試みる（本番環境ではバンドル済み）
+  try {
+    const storage = useStorage('assets:server');
+    const data = await storage.getItemRaw('fonts/NotoSansJP-Black.ttf');
+    if (data) {
+      // Buffer / Uint8Array の場合
+      if (data instanceof Uint8Array) {
+        // Uint8Array#buffer の型は ArrayBufferLike だが、実際の実装は ArrayBuffer のため明示的にキャストする
+        const arrayBuffer = data.buffer as ArrayBuffer;
+        return arrayBuffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+      }
+      // ArrayBuffer の場合
+      if (data instanceof ArrayBuffer) {
+        return data;
+      }
+    }
+  } catch {
+    // useStorage が失敗した場合はフォールバック
+  }
+
+  // 開発環境フォールバック: ファイルシステムから直接読み込み
+  const fontPath = resolve('server/assets/fonts/NotoSansJP-Black.ttf');
+  const buf = readFileSync(fontPath);
+  // Node.js の Buffer#buffer も ArrayBufferLike 型なので、実体である ArrayBuffer にキャストして扱う
+  const arrayBuffer = buf.buffer as ArrayBuffer;
+  return arrayBuffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+}
+
+async function getFont(): Promise<opentype.Font> {
+  if (_font) return _font;
+
+  if (!_fontLoadPromise) {
+    _fontLoadPromise = (async () => {
+      const arrayBuffer = await loadFontBuffer();
+      _font = opentype.parse(arrayBuffer);
+      return _font;
+    })();
+  }
+
+  return _fontLoadPromise;
+}
 
 /** LINE スタンプの出力サイズ */
 const STAMP_WIDTH = 370;
@@ -109,14 +169,24 @@ function calculateFontSize(text: string, imageWidth: number): number {
   return Math.max(base - 6, 38);
 }
 
-/** SVG 用の XML エスケープ */
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+/**
+ * opentype.js でテキストをSVGパスデータに変換する
+ * フォントファイルから直接グリフのアウトラインを取得するため、
+ * サーバーのシステムフォントに依存しない
+ */
+async function textToSvgPath(text: string, fontSize: number, x: number, y: number): Promise<string> {
+  const font = await getFont();
+  const path = font.getPath(text, 0, 0, fontSize);
+  const bbox = path.getBoundingBox();
+
+  // テキスト幅を計算して中央揃え用のオフセットを算出
+  const textWidth = bbox.x2 - bbox.x1;
+  const offsetX = x - textWidth / 2 - bbox.x1;
+  const offsetY = y;
+
+  // 新しい位置でパスを再生成
+  const centeredPath = font.getPath(text, offsetX, offsetY, fontSize);
+  return centeredPath.toPathData(2);
 }
 
 /**
@@ -124,6 +194,7 @@ function escapeXml(str: string): string {
  * - テキストは画像下部にテキストバンドとして追加
  * - 半透明白背景 + 影ストローク + 白縁取り + カラフルfill の3層テキスト
  * - カラーパレットから colorIndex に応じた色を使用
+ * - opentype.js でテキストをSVGパスに変換（システムフォント不要）
  */
 export async function compositeTextOverlay(
   imageBuffer: Buffer,
@@ -170,57 +241,31 @@ export async function compositeTextOverlay(
   const verticalGap = 4;
   const textY = charHeight + verticalGap + Math.floor(fontSize * 0.75);
 
-  // 背景バンド
-  const bandPadding = 6;
-  const bandHeight = fontSize + bandPadding * 2 + strokeWidth * 2;
-  const bandY = charHeight + Math.floor((textAreaHeight - bandHeight) / 2);
+  // opentype.js でテキストをSVGパスに変換（システムフォント不要）
+  const pathData = await textToSvgPath(label, fontSize, STAMP_WIDTH / 2, textY);
 
   const svgText = `<svg width="${STAMP_WIDTH}" height="${STAMP_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <!-- Semi-transparent background band -->
-  <rect
-    x="0"
-    y="${bandY}"
-    width="${STAMP_WIDTH}"
-    height="${bandHeight}"
-    fill="rgba(255, 255, 255, 0.6)"
-    rx="8"
-  />
   <!-- Outer stroke for pop effect -->
-  <text
-    x="${STAMP_WIDTH / 2}"
-    y="${textY}"
-    text-anchor="middle"
-    font-family="'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif"
-    font-weight="900"
-    font-size="${fontSize}"
+  <path
+    d="${pathData}"
     fill="none"
     stroke="rgba(0,0,0,0.3)"
     stroke-width="${strokeWidth + 3}"
     stroke-linejoin="round"
-  >${escapeXml(label)}</text>
+  />
   <!-- White outer border -->
-  <text
-    x="${STAMP_WIDTH / 2}"
-    y="${textY}"
-    text-anchor="middle"
-    font-family="'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif"
-    font-weight="900"
-    font-size="${fontSize}"
+  <path
+    d="${pathData}"
     fill="none"
-    stroke="${escapeXml(colors.stroke)}"
+    stroke="${colors.stroke}"
     stroke-width="${strokeWidth}"
     stroke-linejoin="round"
-  >${escapeXml(label)}</text>
+  />
   <!-- Colored fill -->
-  <text
-    x="${STAMP_WIDTH / 2}"
-    y="${textY}"
-    text-anchor="middle"
-    font-family="'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif"
-    font-weight="900"
-    font-size="${fontSize}"
-    fill="${escapeXml(colors.fill)}"
-  >${escapeXml(label)}</text>
+  <path
+    d="${pathData}"
+    fill="${colors.fill}"
+  />
 </svg>`;
 
   // テキスト SVG を合成

@@ -6,7 +6,18 @@
       "Bash(node -e:*)",
       "Bash(npm install:*)",
       "Bash(pnpm add:*)",
-      "Bash(npx vue-tsc:*)"
+      "Bash(npx vue-tsc:*)",
+      "Bash(curl:*)",
+      "Bash(pyftsubset:*)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(xxd:*)",
+      "Bash(# Try the fonts.google.com direct download API # The static fonts may be at a different path. Let''s check. curl -L -o /tmp/noto-check.ttf \"\"https://fonts.gstatic.com/s/notosansjp/v53/KFRmCnaiNNimvbho6yp9Jg.ttf\"\" -w \"\"%{http_code}\"\" echo \"\"\"\" # Actually, let''s use the Google Fonts CSS API to find the right URL for weight 900 curl -s \"\"https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@900\"\" -H \"\"User-Agent: Mozilla/5.0\"\")",
+      "Bash(# Check how Nuxt/Nitro handles server assets # The useStorage approach with server/assets is the standard Nitro way ls /Users/tuchida/dev/anime/server/assets/ # Also check if there are any existing server assets find /Users/tuchida/dev/anime/server -name \"\"*.ts\"\" -path \"\"*/utils/*\"\")",
+      "Bash(ls:*)",
+      "WebFetch(domain:nitro.build)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm typecheck:*)"
     ]
   }
 }

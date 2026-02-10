@@ -272,9 +272,45 @@ function downloadStampImage() {
 }
 
 /**
+ * 画像を指定サイズにリサイズした canvas から Blob を生成するヘルパー
+ * - 中央クロップではなく、アスペクト比を維持して収まるようリサイズし、透過背景で余白を埋める
+ */
+function resizeImageToBlob(imgSrc: string, width: number, height: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+
+      // アスペクト比を維持して収める
+      const scale = Math.min(width / img.naturalWidth, height / img.naturalHeight);
+      const drawW = img.naturalWidth * scale;
+      const drawH = img.naturalHeight * scale;
+      const offsetX = (width - drawW) / 2;
+      const offsetY = (height - drawH) / 2;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Canvas toBlob failed'));
+      }, 'image/png');
+    };
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = imgSrc;
+  });
+}
+
+/**
  * 成功したスタンプ画像をfetchしてクライアント側でZIPを生成・ダウンロードする
  * - バッチ生成完了後に自動で呼び出される
  * - 成功したスタンプのみをZIPに含める
+ * - LINE仕様に従い main.png (240×240) と tab.png (96×74) を元画像からリサイズして含める
+ * - スタンプファイル名は 01.png, 02.png, ... (LINE仕様準拠)
  */
 async function buildAndDownloadZip() {
   const stamps = lineStampStore.successfulStamps;
@@ -285,14 +321,26 @@ async function buildAndDownloadZip() {
   try {
     const zip = new JSZip();
 
+    // スタンプ画像を 01.png, 02.png, ... として追加
     await Promise.all(
-      stamps.map(async ({ label, imageUrl }, index) => {
+      stamps.map(async ({ imageUrl }, index) => {
         const res = await fetch(imageUrl);
         const blob = await res.blob();
-        const fileName = `${String(index + 1).padStart(2, '0')}_${label.replace(/[\\/:*?"<>|]/g, '_')}.png`;
+        const fileName = `${String(index + 1).padStart(2, '0')}.png`;
         zip.file(fileName, blob);
       })
     );
+
+    // main.png (240×240) と tab.png (96×74) を元のアイコン画像からリサイズして追加
+    const originalImageUrl = generationStore.resultImageUrl;
+    if (originalImageUrl) {
+      const [mainBlob, tabBlob] = await Promise.all([
+        resizeImageToBlob(originalImageUrl, 240, 240),
+        resizeImageToBlob(originalImageUrl, 96, 74)
+      ]);
+      zip.file('main.png', mainBlob);
+      zip.file('tab.png', tabBlob);
+    }
 
     const content = await zip.generateAsync({ type: 'blob' });
     const blobUrl = URL.createObjectURL(content);
@@ -497,12 +545,6 @@ function downloadStampZip() {
       class="mt-6 space-y-3"
       aria-labelledby="line-stamp-zip-download-heading"
     >
-      <h2
-        id="line-stamp-zip-download-heading"
-        class="text-sm font-medium text-gray-700 dark:text-gray-300"
-      >
-        スタンプを ZIP でダウンロード
-      </h2>
       <p
         v-if="lineStampStore.zipResult.status === 'generating'"
         class="text-xs text-gray-600 dark:text-gray-400"
