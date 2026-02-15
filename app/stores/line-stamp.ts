@@ -271,6 +271,12 @@ export const useLineStampStore = defineStore('line-stamp', {
       const trimmed = text.trim();
       if (!trimmed) return;
       this.customWords = [...this.customWords, trimmed];
+
+      // Phase 1: 単一生成用に代表となる自由入力も保持する（先頭行を代表とする）
+      if (this.customWords.length > 0) {
+        this.customWord = this.customWords[0] ?? '';
+        this.selectedWordId = null; // 自由入力がある場合はプリセット選択を解除
+      }
     },
 
     /**
@@ -280,12 +286,26 @@ export const useLineStampStore = defineStore('line-stamp', {
      */
     updateCustomWord(index: number, text: string) {
       if (index < 0 || index >= this.customWords.length) return;
+
       const trimmed = text.trim();
+      let nextCustomWords = [...this.customWords];
+
       if (!trimmed) {
-        this.customWords = this.customWords.filter((_, i) => i !== index);
-        return;
+        // 空文字になった場合は削除扱い
+        nextCustomWords = nextCustomWords.filter((_, i) => i !== index);
+      } else {
+        nextCustomWords[index] = trimmed;
       }
-      this.customWords = this.customWords.map((word, i) => (i === index ? trimmed : word));
+
+      this.customWords = nextCustomWords;
+
+      // Phase 1: 単一生成用に代表となる自由入力も保持する（先頭行を代表とする）
+      if (this.customWords.length > 0) {
+        this.customWord = this.customWords[0] ?? '';
+        this.selectedWordId = null; // 自由入力がある場合はプリセット選択を解除
+      } else {
+        this.customWord = '';
+      }
     },
 
     /**
@@ -295,6 +315,14 @@ export const useLineStampStore = defineStore('line-stamp', {
     removeCustomWord(index: number) {
       if (index < 0 || index >= this.customWords.length) return;
       this.customWords = this.customWords.filter((_, i) => i !== index);
+
+      // Phase 1: 単一生成用に代表となる自由入力も保持する（先頭行を代表とする）
+      if (this.customWords.length > 0) {
+        this.customWord = this.customWords[0] ?? '';
+        this.selectedWordId = null; // 自由入力がある場合はプリセット選択を解除
+      } else {
+        this.customWord = '';
+      }
     },
 
     /** 選択をすべて解除する */

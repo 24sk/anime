@@ -189,47 +189,24 @@ function onWordClick(wordId: string) {
 }
 
 /**
- * 複数自由入力用テキストエリアの値
- * - 改行区切りで customWords を編集する。
- * - 既存の Phase 1 の customWord がある場合は、初期表示時に先頭行として扱う。
- * - 合計選択数（プリセット + 自由入力）が MAX_LINE_STAMP_PER_REQUEST を超えないように制限する。
+ * 新規追加用入力欄の値
  */
-const customWordsInput = computed({
-  get() {
-    if (lineStampStore.customWords.length > 0) {
-      return lineStampStore.customWords.join('\n');
-    }
-    return lineStampStore.customWord;
-  },
-  set(value: string) {
-    // 入力されたテキストを行ごとに分割し、空行を除外する
-    const lines = value
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .map(line => line.slice(0, CUSTOM_WORD_MAX_LENGTH));
+const newCustomWord = ref('');
 
-    // 現在の選択可能最大数（作成するLINEスタンプ数とシステム上限の小さい方）から
-    // すでに選択されているプリセット分を引いた残り枠を計算する
-    const maxCustomCount = Math.max(
-      maxSelectableCount.value - lineStampStore.selectedWordIds.length,
-      0
-    );
-    const limitedLines = lines.slice(0, maxCustomCount);
+/**
+ * 自由入力の文言を追加する
+ * - 入力値がある場合のみ追加し、入力欄をクリアする
+ * - 上限チェックはボタンやdisabled属性で制御済みだが、念のためここでもチェックする
+ */
+const addCustomWord = () => {
+  const text = newCustomWord.value.trim();
+  if (!text) return;
 
-    // Phase 2: 複数自由入力用の配列を更新
-    lineStampStore.setCustomWords(limitedLines);
+  if (isBatchMaxReached.value) return;
 
-    // Phase 1: 単一生成用に代表となる自由入力も保持する（先頭行を代表とする）
-    const primary = limitedLines[0] ?? '';
-    lineStampStore.customWord = primary;
-
-    // 代表の自由入力が存在する場合は、Phase 1 と同様にプリセット単一選択は解除しておく
-    if (primary) {
-      lineStampStore.selectedWordId = null;
-    }
-  }
-});
+  lineStampStore.addCustomWord(text);
+  newCustomWord.value = '';
+};
 
 // UTabs の items（単語 / セット）。初期表示は単語タブ。
 const tabItems = [
@@ -295,25 +272,69 @@ const tabItems = [
             </div>
           </div>
 
-          <!-- 自由入力（プリセット以外の文言を1件指定）。幅・高さを広めにして入力しやすくする -->
-          <div class="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400">
-              自由入力
-            </h3>
-            <UTextarea
-              v-model="customWordsInput"
-              placeholder="例: おつかれさま"
-              :maxlength="CUSTOM_WORD_MAX_LENGTH"
-              :rows="3"
-              size="md"
-              class="w-full min-h-18 resize-y"
-              :disabled="isBatchMaxReached"
-              aria-label="スタンプに載せる文言を自由入力"
-            />
-            <p class="text-xs text-gray-500 dark:text-gray-400">
-              最大{{ CUSTOM_WORD_MAX_LENGTH }}文字まで
-              <span v-if="isBatchMaxReached">（選択数が上限に達しているため、これ以上追加できません）</span>
-            </p>
+          <!-- 自由入力（プリセット以外の文言を指定） -->
+          <div class="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                自由入力
+              </h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                最大{{ CUSTOM_WORD_MAX_LENGTH }}文字
+              </p>
+            </div>
+
+            <div class="space-y-2">
+              <div
+                v-for="(word, index) in lineStampStore.customWords"
+                :key="index"
+                class="flex items-center gap-2"
+              >
+                <UInput
+                  :model-value="word"
+                  :maxlength="CUSTOM_WORD_MAX_LENGTH"
+                  size="sm"
+                  class="flex-1"
+                  @update:model-value="(val) => lineStampStore.updateCustomWord(index, val)"
+                />
+                <UButton
+                  icon="i-lucide-trash-2"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  class="rounded-full"
+                  title="削除"
+                  @click="lineStampStore.removeCustomWord(index)"
+                />
+              </div>
+
+              <!-- 新規追加用入力欄 -->
+              <div class="flex items-center gap-2">
+                <UInput
+                  v-model="newCustomWord"
+                  :placeholder="isBatchMaxReached ? '選択数が上限に達しています' : '例: おつかれさま'"
+                  :maxlength="CUSTOM_WORD_MAX_LENGTH"
+                  :disabled="isBatchMaxReached"
+                  size="sm"
+                  class="flex-1"
+                  @keydown.enter.prevent="addCustomWord"
+                />
+                <UButton
+                  icon="i-lucide-plus"
+                  color="primary"
+                  variant="solid"
+                  size="sm"
+                  class="rounded-full"
+                  :disabled="!newCustomWord.trim() || isBatchMaxReached"
+                  @click="addCustomWord"
+                />
+              </div>
+              <p
+                v-if="isBatchMaxReached"
+                class="text-xs text-red-500"
+              >
+                選択数が上限に達しているため、これ以上追加できません
+              </p>
+            </div>
           </div>
         </div>
       </template>
