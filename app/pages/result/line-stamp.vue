@@ -34,7 +34,7 @@ useHead({
 /** トップへ戻る（もう一度作る） */
 function goHome() {
   generationStore.reset();
-  router.push('/');
+  router.push('/generate');
 }
 
 onMounted(() => {

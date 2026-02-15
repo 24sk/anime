@@ -5,39 +5,11 @@
  * スマホ時はハンバーガーメニューで #body を開き、4項目（利用規約・お問い合わせ・AniMeについて・FAQ）を表示
  */
 import type { NavigationMenuItem } from '@nuxt/ui';
-import { usageTourSteps } from '~/composables/useUsageTour';
 
 const route = useRoute();
-const toast = useToast();
 
 // モバイルメニュー開閉状態（#body を閉じるために使用）
 const headerOpen = ref(false);
-
-// 使い方ガイド（Driver.js）。DOM 参照のため onMounted（クライアント）で初期化
-const driverInstance = ref<ReturnType<typeof useDriver> | null>(null);
-onMounted(() => {
-  driverInstance.value = useDriver({
-    showProgress: true,
-    animate: true,
-    steps: usageTourSteps
-  });
-});
-
-/**
- * 使い方ガイドツアーを開始する
- * トップ画面（/）以外ではトーストで案内し、トップ画面では Driver.js のツアーを開始する
- */
-function startUsageTour() {
-  if (route.path !== '/') {
-    toast.add({
-      title: '使い方ガイド',
-      description: 'トップページでご利用ください。',
-      color: 'neutral'
-    });
-    return;
-  }
-  driverInstance.value?.drive();
-}
 
 /**
  * ナビゲーション用のリンク項目（4項目：規約・お問い合わせ・About・FAQ）
@@ -97,14 +69,6 @@ const navItems = computed<NavigationMenuItem[]>(() => [
       />
 
       <template #right>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          icon="i-lucide-help-circle"
-          aria-label="使い方"
-          label="使い方"
-          @click="startUsageTour"
-        />
         <UColorModeButton />
       </template>
 

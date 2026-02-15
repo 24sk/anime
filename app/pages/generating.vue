@@ -154,7 +154,7 @@ onMounted(async () => {
       generationStore.setStatus('generating');
       previewDisplayOnly = true;
     } else {
-      router.replace('/');
+      router.replace('/generate');
       return;
     }
   }
@@ -265,7 +265,7 @@ onUnmounted(() => {
           <UButton
             color="primary"
             variant="solid"
-            @click="() => { generationStore.reset(); router.push('/') }"
+            @click="() => { generationStore.reset(); router.push('/generate') }"
           >
             もう一度やり直す
           </UButton>

@@ -66,7 +66,8 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    '/': { prerender: true }
+    '/': { prerender: true },
+    '/generate': { ssr: true }
   },
 
   compatibilityDate: '2025-01-15',

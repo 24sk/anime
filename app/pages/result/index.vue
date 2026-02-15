@@ -14,7 +14,7 @@ const isPreviewMode
 /** トップへ戻る（もう一度作る） */
 function goHome() {
   generationStore.reset();
-  router.push('/');
+  router.push('/generate');
 }
 
 /** 画像をダウンロード */
@@ -102,7 +102,7 @@ async function sendFeedback(type: 'good' | 'bad') {
  * 結果画面ではブラウザバック・戻るを無効にする
  * 許可する遷移: トップ（/）、LINEスタンプ作成（/result/line-stamp）。「もう一度作る」は goHome() で reset 後に遷移
  */
-const ALLOWED_LEAVE_PATHS: string[] = ['/', '/result/line-stamp'];
+const ALLOWED_LEAVE_PATHS: string[] = ['/', '/generate', '/result/line-stamp'];
 
 onBeforeRouteLeave((to, _from, next) => {
   if (generationStore.status === 'completed' && !ALLOWED_LEAVE_PATHS.includes(to.path)) {
@@ -137,7 +137,7 @@ onMounted(() => {
 
   if (!generationStore.jobId || generationStore.status !== 'completed') {
     if (!generationStore.resultImageUrl) {
-      router.replace('/');
+      router.replace('/generate');
     }
   }
 });
