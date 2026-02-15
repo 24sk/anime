@@ -7,11 +7,9 @@ import { getPetAnalysisPrompt } from './prompts';
  */
 export function getGeminiClient() {
   const config = useRuntimeConfig();
-
   if (!config.geminiApiKey) {
     throw new Error('GEMINI_API_KEYが設定されていません');
   }
-
   return new GoogleGenerativeAI(config.geminiApiKey);
 }
 
@@ -39,13 +37,10 @@ export async function analyzePetImage(imageUrl: string): Promise<string> {
   const genAI = getGeminiClient();
   // 最新のモデル: gemini-2.0-flash
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
   // 画像データの取得
   const imageData = await fetchImageAsBase64(imageUrl);
-
   // システムプロンプトの取得
   const systemInstruction = getPetAnalysisPrompt();
-
   // 画像解析の実行
   const result = await model.generateContent([systemInstruction, imageData]);
   const response = await result.response;
@@ -65,15 +60,12 @@ export async function generateImageWithImagen(
   modelName: string = 'gemini-2.5-flash-image'
 ): Promise<Buffer> {
   const config = useRuntimeConfig();
-
   if (!config.geminiApiKey) {
     throw new Error('GEMINI_API_KEY is not set');
   }
-
   // --- Imagen Models: Use REST API (predict) ---
   if (modelName.includes('imagen')) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${config.geminiApiKey}`;
-
     const requestBody = {
       instances: [
         {
@@ -85,9 +77,6 @@ export async function generateImageWithImagen(
       }
     };
 
-    console.log(`Generating image with model: ${modelName} via REST API (predict)`);
-    console.log('Prompt:', prompt);
-
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -95,7 +84,6 @@ export async function generateImageWithImagen(
       },
       body: JSON.stringify(requestBody)
     });
-
     if (!response.ok) {
       const errorText = await response.text();
       try {
@@ -108,12 +96,10 @@ export async function generateImageWithImagen(
       }
       throw new Error(`Imagen API Error: ${response.status} ${response.statusText} - ${errorText}`);
     }
-
     const data = await response.json() as {
       predictions?: Array<{ bytesBase64Encoded?: string; mimeType?: string }>;
     };
     const base64Image = data.predictions?.[0]?.bytesBase64Encoded;
-
     if (!base64Image) {
       if (data.predictions?.[0]?.mimeType && data.predictions?.[0]?.bytesBase64Encoded) {
         return Buffer.from(data.predictions[0].bytesBase64Encoded, 'base64');
@@ -121,13 +107,10 @@ export async function generateImageWithImagen(
       console.error('API Response for debugging:', JSON.stringify(data, null, 2));
       throw new Error('No image returned from Imagen API');
     }
-
     return Buffer.from(base64Image, 'base64');
   }
-
   // --- Gemini Models: Use SDK (generateContent) ---
   const genAI = getGeminiClient();
-
   // Gemini 画像生成モデル（Nano Banana / gemini-2.5-flash-image）を使用
   // Imagen 3（imagen-3.0-generate-001）は generativelanguage API の generateContent 非対応のため未使用
   // https://ai.google.dev/gemini-api/docs/image-generation
@@ -139,16 +122,11 @@ export async function generateImageWithImagen(
     } as Record<string, unknown>
   });
 
-  console.log(`Generating image with model: ${modelName} via SDK (generateContent)`);
-  console.log('prompt', prompt);
-
   // 元画像の特徴をより反映させるため、画像データも一緒に送信
   const imageData = await fetchImageAsBase64(sourceImageUrl);
-
   try {
     const result = await model.generateContent([prompt, imageData]);
     const response = await result.response;
-
     // 生成された画像のバイナリデータを取得
     // テキストが先に返る場合があるため、parts 全体から inlineData を持つ part を探す
     const parts = response.candidates?.[0]?.content?.parts ?? [];
@@ -159,11 +137,9 @@ export async function generateImageWithImagen(
         break;
       }
     }
-
     if (!imageBytes) {
       throw new Error('画像の生成結果が空です。セーフティフィルタに抵触した可能性があります。');
     }
-
     return Buffer.from(imageBytes, 'base64');
   } catch (error) {
     console.error('Image Generation Error:', error);

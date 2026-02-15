@@ -7,7 +7,6 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const { filename } = getQuery(event);
   const safeFilename = (filename as string) || 'image.png';
-  console.log('safeFilename', safeFilename);
 
   // ヘッダーからContentTypeを取得し、なければimage/pngをデフォルトに
   const contentType = getHeader(event, 'content-type') || 'image/png';
@@ -33,7 +32,6 @@ export default defineEventHandler(async (event) => {
       addRandomSuffix: false // パスを固定するためにfalseを推奨
     });
 
-    console.log('Successfully uploaded with type:', blob.contentType);
     return blob;
   } catch (error) {
     console.error('Upload Error:', error);
