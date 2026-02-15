@@ -89,8 +89,24 @@ function getEmotionDirective(label: string): string {
  * @param {string} petDescription - ペットの特徴説明（画像解析結果）
  * @returns {string} 画像生成用プロンプト（英語）
  */
-export function getLineStampGenerationPrompt(label: string, petDescription: string): string {
+export function getLineStampGenerationPrompt(label: string, petDescription: string, styleType?: StyleType): string {
   const emotionDirective = getEmotionDirective(label);
+
+  // スタイルごとのプロンプト定義（getImageGenerationPromptと共通化すべきだが、一旦ここで定義）
+  // LINEスタンプ向けに少し調整しても良い
+  const stylePrompts: Record<StyleType, string> = {
+    '3d-anime': '3D Pixar-style animated character, cute, adorable, high detail, soft fur, expressive eyes, Disney style, render, 8k, masterpiece.',
+    'watercolor': 'Soft watercolor painting, artistic splashes, pastel colors, white background, dreamy, wet-on-wet technique, high quality.',
+    'fluffy': 'Cute hand-drawn illustration, fluffy texture, soft lines, pastel colors, warm and cozy vibes, storybook style, adorable.',
+    'cyberpunk': 'Cyberpunk pet icon, neon lights, futuristic accessories, vibrant glowing colors, high contrast, sci-fi aesthetic, cool.',
+    'korean-style': 'Modern Korean-style pet icon, flat design, vibrant soft colors, simple but cute, charms, stickers, app icon style.',
+    'simple-illustration': 'Simple minimalist pet icon, clean lines, flat color, vector art, white background, modern, logo style.'
+  };
+
+  // 指定されたスタイルがあればそれを使用、なければデフォルト（ただし "かわいい" 系を強制しすぎない）
+  const styleInstruction = styleType && stylePrompts[styleType]
+    ? `Style: ${stylePrompts[styleType]}`
+    : 'Style: Cute kawaii illustration style with bold outlines, vibrant colors, and simple shading. The style should match popular Japanese LINE stickers.';
 
   return `Create a single character illustration for a LINE messaging app sticker.
 
@@ -98,16 +114,16 @@ CRITICAL - Pet appearance (must match the reference image exactly):
 ${petDescription}
 You MUST reproduce this exact pet with the same breed, fur color, fur pattern, eye color, and overall appearance as shown in the reference image. Do NOT change the pet's species, color, or distinctive features.
 
-Style: Cute kawaii illustration style with bold outlines, vibrant colors, and simple shading. The style should match popular Japanese LINE stickers.
+${styleInstruction}
 
 Emotion and pose:
 ${emotionDirective}
 
 CRITICAL - NO TEXT: Do NOT include ANY text, letters, words, or typography in the image. The image must contain ONLY the pet character with NO text whatsoever.
 
-CRITICAL - Background: The background MUST be a perfectly uniform, solid chroma-key green (#00FF00). No gradients, no shadows on the background, no other colors in the background area. The pet character must NOT contain any bright green (#00FF00) colors.
+CRITICAL - Background: The background MUST be a perfectly uniform, solid chroma-key green (#00FF00). It must be completely flat with NO gradients, NO shadows, NO floor shadows, and NO lighting effects on the background. The green must be #00FF00 everywhere.
 
 Layout: The pet character should be centered, occupying about 70-80% of the image area. Leave some padding around the character.
 
-Output: One character-only illustration with a solid green (#00FF00) background, no text.`;
+Output: One character-only illustration with a solid, flat green (#00FF00) background, no text.`;
 }

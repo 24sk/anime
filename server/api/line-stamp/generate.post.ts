@@ -14,6 +14,7 @@ import { checkLineStampDailyLimit, LINE_STAMP_DAILY_LIMIT } from '~~/server/util
 import { getLineStampGenerationPrompt } from '~~/server/utils/prompts';
 import { processStampImage } from '~~/server/utils/stamp-image';
 import { STAMP_WORDS } from '~~/shared/constants/line-stamp';
+import type { StyleType } from '~~/shared/types/style';
 
 /** 自由入力文言の最大文字数（フロントと一致） */
 const CUSTOM_LABEL_MAX_LENGTH = 20;
@@ -108,7 +109,7 @@ export default defineEventHandler(async (event: H3Event) => {
     const petDescription = await analyzePetImage(validated.image_url);
 
     // スタンプ用プロンプト生成
-    const prompt = getLineStampGenerationPrompt(label, petDescription);
+    const prompt = getLineStampGenerationPrompt(label, petDescription, validated.style_type as StyleType);
 
     // モデル選択: アイコン変換時と同じロジック（3d-anime は Imagen 4、それ以外は Gemini 2.5 Flash Image）
     let modelName = 'gemini-2.5-flash-image';

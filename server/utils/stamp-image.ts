@@ -131,20 +131,21 @@ export async function removeGreenBackground(imageBuffer: Buffer): Promise<Buffer
     }
     if (hue < 0) hue += 360;
 
-    // 緑色判定: 色相80-160°、彩度>40%、明度>30%
-    const isGreen = hue >= 80 && hue <= 160 && saturation > 0.4 && value > 0.3;
+    // 緑色判定: 色相80-160°、彩度>15%、明度>15% (判定を緩和)
+    // 生成画像に多少のノイズや影があっても緑として認識するように閾値を下げる
+    const isGreen = hue >= 80 && hue <= 160 && saturation > 0.15 && value > 0.15;
 
     if (isGreen) {
       // 完全透過
       pixels[offset + 3] = 0;
-    } else if (hue >= 70 && hue <= 170 && saturation > 0.25 && value > 0.2) {
+    } else if (hue >= 70 && hue <= 170 && saturation > 0.1 && value > 0.1) {
       // エッジ: 半透明にしてアンチエイリアス効果
       const edgeFactor = Math.min(
-        Math.abs(hue - 120) / 50,
+        Math.abs(hue - 120) / 40, // 範囲を少し広げる
         1 - saturation,
         1 - value
       );
-      pixels[offset + 3] = Math.round(255 * Math.min(edgeFactor * 3, 1));
+      pixels[offset + 3] = Math.round(255 * Math.min(edgeFactor * 2, 1)); // 係数を調整
     }
   }
 
