@@ -84,6 +84,75 @@ const styles = [
               詳しく見る
             </UButton>
           </div>
+
+          <div class="mt-16 flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-12 pb-8">
+            <!-- Original -->
+            <div class="group relative transform transition hover:scale-105 duration-300">
+              <div class="absolute -inset-2 bg-gradient-to-r from-gray-200 to-gray-300 rounded-3xl blur-lg opacity-75 group-hover:opacity-100 transition duration-500" />
+              <div class="relative bg-white p-2 rounded-2xl ring-1 ring-gray-900/5 shadow-2xl">
+                <div class="w-48 h-48 sm:w-64 sm:h-64 relative rounded-xl overflow-hidden bg-gray-100">
+                  <NuxtImg
+                    src="/images/sample.jpg"
+                    class="w-full h-full object-cover"
+                    alt="Original Photo"
+                  />
+                </div>
+                <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-1.5 rounded-full whitespace-nowrap shadow-lg font-bold text-sm z-10">
+                  Original
+                </div>
+              </div>
+            </div>
+
+            <!-- 3D Curved Arrow -->
+            <div class="relative w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center -my-6 sm:my-0 rotate-90 sm:rotate-0 z-0">
+              <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-xl filter">
+                <defs>
+                  <linearGradient id="arrow-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#f87171;stop-opacity:1" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M 10 50 L 90 50"
+                  fill="none"
+                  stroke="url(#arrow-gradient)"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                  class="animate-pulse"
+                />
+                <path
+                  d="M 70 30 L 90 50 L 70 70"
+                  fill="none"
+                  stroke="url(#arrow-gradient)"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="animate-pulse"
+                />
+              </svg>
+            </div>
+
+            <!-- Generated -->
+            <div class="group relative transform transition hover:scale-105 duration-300">
+              <div class="absolute -inset-2 bg-gradient-to-r from-primary-400 to-rose-400 rounded-3xl blur-lg opacity-75 group-hover:opacity-100 transition duration-500" />
+              <div class="relative bg-white p-2 rounded-2xl ring-1 ring-gray-900/5 shadow-2xl">
+                <div class="w-48 h-48 sm:w-64 sm:h-64 relative rounded-xl overflow-hidden bg-gray-100">
+                  <NuxtImg
+                    src="/images/anime-icon.png"
+                    class="w-full h-full object-cover"
+                    alt="AI Generated Icon"
+                  />
+                </div>
+                <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary-500 to-rose-500 text-white px-5 py-1.5 rounded-full whitespace-nowrap shadow-lg font-bold flex items-center gap-2 text-sm z-10">
+                  <UIcon
+                    name="i-heroicons-sparkles"
+                    class="w-4 h-4"
+                  />
+                  AniMe Art
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </UContainer>
     </section>
