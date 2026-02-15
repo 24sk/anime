@@ -72,7 +72,7 @@ const navItems = computed<NavigationMenuItem[]>(() => [
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-[#E0F2F1] to-primary-100">
+  <div class="min-h-screen bg-gradient-to-b from-[#E0F2F1] to-primary-100 dark:from-gray-950 dark:to-gray-900">
     <UHeader
       v-model:open="headerOpen"
       :toggle="{
