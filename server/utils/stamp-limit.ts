@@ -67,10 +67,12 @@ export async function checkLineStampDailyLimit(
   };
 
   try {
-    const { data: countRow, error: selectError } = await query
+    const { data: initialData, error: selectError } = await query
       .eq('anon_session_id', anonSessionId)
       .eq('date', today)
       .maybeSingle();
+
+    let countRow = initialData;
 
     if (selectError) {
       // エラーはログに記録して、日次制限チェックをスキップ（サービス継続性のため）
@@ -101,14 +103,32 @@ export async function checkLineStampDailyLimit(
       const { error: insertError } = await insertQuery.insert(insertData);
 
       if (insertError) {
-        console.error('[stamp-limit] insert error:', insertError);
-        return { allowed: true, remaining: LINE_STAMP_DAILY_LIMIT };
-      }
+        // 重複エラー（23505）の場合は、他プロセスが先に作成したとみなして
+        // 後続の UPDATE 処理に進むために、再度 SELECT を試みる
+        if (insertError.code === '23505') {
+          const { data: retryRow, error: retryError } = await query
+            .eq('anon_session_id', anonSessionId)
+            .eq('date', today)
+            .maybeSingle();
 
-      return {
-        allowed: true,
-        remaining: LINE_STAMP_DAILY_LIMIT - increment
-      };
+          if (retryRow) {
+            countRow = retryRow;
+            // 成功したので、下の UPDATE ロジックへ進む
+          } else {
+            console.error('[stamp-limit] retry select error after 23505:', retryError);
+            return { allowed: true, remaining: LINE_STAMP_DAILY_LIMIT };
+          }
+        } else {
+          console.error('[stamp-limit] insert error:', insertError);
+          return { allowed: true, remaining: LINE_STAMP_DAILY_LIMIT };
+        }
+      } else {
+        // INSERT 成功
+        return {
+          allowed: true,
+          remaining: LINE_STAMP_DAILY_LIMIT - increment
+        };
+      }
     }
 
     const currentCount = countRow.generated_count ?? 0;
